@@ -1,4 +1,4 @@
-workspace extends ../workspace.dsl {
+workspace extends ../landscape.dsl {
     model {
         !include model.dsl
     }
@@ -16,20 +16,6 @@ workspace extends ../workspace.dsl {
             autoLayout
             title "Recommendation Engine - Containers"
             description "The container diagram for the Recommendation Engine"
-        }
-
-        component recommendationAPI "RecommendationAPIComponents" {
-            include *
-            autoLayout
-            title "Recommendation API - Components"
-            description "The component diagram for the Recommendation API"
-        }
-
-        component modelTrainingService "ModelTrainingComponents" {
-            include *
-            autoLayout
-            title "Model Training Service - Components"
-            description "The component diagram for the Model Training Service"
         }
 
         !include ../styles.dsl

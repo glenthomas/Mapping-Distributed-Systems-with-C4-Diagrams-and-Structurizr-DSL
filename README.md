@@ -110,7 +110,13 @@ brew install podman
 Then run a container with the structurizr/lite image, exposing port 8080 to the host and mapping the directory containing your workspace.dsl file to the container's `/usr/local/structurizr` directory.
 
 ```shell
-podman run -it --rm -p 8080:8080 -v /Users/glen.thomas/Documents/ecomm_platform:/usr/local/structurizr structurizr/lite
+podman run -it --rm -p 8080:8080 -v /Users/glen.thomas/Mapping-Distributed-Systems-with-C4-Diagrams-and-Structurizr-DSL:/usr/local/structurizr structurizr/lite
 ```
 
 Load the Structurizr light web page in your browser (http://localhost:8080) and see the diagram rendered in the UI with automatic layout.
+
+To load one of the individual software systems add the STRUCTURIZR_WORKSPACE_PATH environment variable with the directory that you would like to view:
+
+```shell
+podman run -it --rm -p 8080:8080 -v /Users/glen.thomas/Mapping-Distributed-Systems-with-C4-Diagrams-and-Structurizr-DSL:/usr/local/structurizr -e STRUCTURIZR_WORKSPACE_PATH=ecommerceSystem structurizr/lite
+```

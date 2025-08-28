@@ -1,4 +1,4 @@
-workspace {
+workspace extends ../landscape.dsl {
     model {
         !include model.dsl
     }
@@ -16,13 +16,6 @@ workspace {
             autoLayout
             title "Support System - Containers"
             description "The container diagram for the Customer Support Platform"
-        }
-
-        component ticketService "TicketServiceComponents" {
-            include *
-            autoLayout
-            title "Ticket Service - Components"
-            description "The component diagram for the Ticket Service"
         }
 
         !include ../styles.dsl

@@ -1,6 +1,6 @@
-workspace extends ../workspace.dsl {
-    model{
-        !includes model.dsl
+workspace extends ../landscape.dsl {
+    model {
+        !include model.dsl
     }
     
     views {

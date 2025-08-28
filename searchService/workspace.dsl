@@ -1,4 +1,4 @@
-workspace extends ../workspace.dsl {
+workspace extends ../landscape.dsl {
     model {
         !include model.dsl
     }
@@ -16,13 +16,6 @@ workspace extends ../workspace.dsl {
             autoLayout
             title "Search Service - Containers"
             description "The container diagram for the Product Search Platform"
-        }
-
-        component searchAPI "SearchAPIComponents" {
-            include *
-            autoLayout
-            title "Search API - Components"
-            description "The component diagram for the Search API"
         }
 
         !include ../styles.dsl

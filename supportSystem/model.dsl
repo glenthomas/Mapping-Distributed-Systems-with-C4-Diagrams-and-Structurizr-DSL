@@ -3,7 +3,7 @@ supportAgent = person "Support Agent" "Customer service representative handling 
 supportManager = person "Support Manager" "Manages support operations and team performance"
 
 # Redefine supportSystem as the internal system (overrides the external system definition)
-supportSystem = softwareSystem "Customer Support Platform" "Handles customer inquiries and support operations" {
+!element supportSystem {
     # Container level - microservices
     supportPortal = container "Support Portal" "Customer-facing support interface" "React/JavaScript"
     agentDashboard = container "Agent Dashboard" "Support agent interface for managing tickets" "React/JavaScript"
