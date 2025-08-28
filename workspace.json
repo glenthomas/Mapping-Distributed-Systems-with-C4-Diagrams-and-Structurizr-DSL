@@ -1,0 +1,3442 @@
+{
+  "configuration" : { },
+  "description" : "Architecture for our online retail business",
+  "documentation" : {
+    "decisions" : [ {
+      "content" : "# 1. Record architecture decisions\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nWe need to record the architectural decisions made on this project.\n\n## Decision\n\nWe will use Architecture Decision Records, as described by Michael Nygard in this article: [http://thinkrelevance.com/blog/2011/11/15/documenting-architecture-decisions](http://thinkrelevance.com/blog/2011/11/15/documenting-architecture-decisions)\n\n## Consequences\n\nSee Michael Nygard's article, linked above.",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "1",
+      "status" : "Accepted",
+      "title" : "Record architecture decisions"
+    }, {
+      "content" : "# 2. Adopt Microservices Architecture\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nWe need to design a scalable e-commerce platform that can handle multiple domains including core e-commerce functionality, order fulfillment, and marketing automation. The system needs to support:\n\n- High availability and scalability\n- Independent deployment of different business capabilities\n- Different teams working on different parts of the system\n- Technology diversity for optimal solutions per domain\n\n## Decision\n\nWe will adopt a microservices architecture pattern, organizing our system into the following bounded contexts:\n\n1. **E-commerce System** - Core customer-facing functionality\n2. **Fulfillment System** - Order processing and inventory management\n3. **Marketing System** - Campaign management and customer engagement\n4. **Support System** - Customer service and support tools\n\nEach system will be composed of focused microservices with dedicated databases following the database-per-service pattern.\n\n## Consequences\n\n**Positive:**\n- Independent scaling of different business capabilities\n- Technology diversity - teams can choose optimal tech stack per service\n- Fault isolation - issues in one service don't bring down the entire system\n- Independent deployment and release cycles\n- Clear ownership boundaries for different teams\n\n**Negative:**\n- Increased operational complexity\n- Network latency between services\n- Data consistency challenges across services\n- More complex testing and debugging\n- Need for sophisticated monitoring and observability\n\n**Mitigation:**\n- Implement comprehensive monitoring and logging\n- Use message queues for asynchronous communication\n- Establish clear service contracts and API versioning\n- Invest in CI/CD pipeline automation\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "2",
+      "status" : "Accepted",
+      "title" : "Adopt Microservices Architecture"
+    }, {
+      "content" : "# 3. Use Polyglot Persistence Strategy\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nDifferent parts of our e-commerce platform have varying data requirements:\n\n- User accounts need ACID transactions and relational integrity\n- Product catalogs benefit from flexible schema and fast reads\n- Order data requires strong consistency and auditability\n- Marketing analytics need fast aggregations and flexible querying\n- Inventory tracking requires real-time updates and consistency\n\nA single database technology cannot optimally serve all these diverse needs.\n\n## Decision\n\nWe will implement a polyglot persistence strategy using different database technologies optimised for specific use cases:\n\n- **PostgreSQL** for transactional data (users, orders, campaigns, analytics)\n- **MongoDB** for flexible schema data (product catalogs, customer segments, inventory)\n- **MySQL** for warehouse operations data (established team expertise)\n\nEach microservice will own its data and database, following the database-per-service pattern.\n\n## Consequences\n\n**Positive:**\n- Optimal performance for each data access pattern\n- Services can evolve their data models independently\n- Technology choice matches team expertise and use case requirements\n- Better scalability through specialised database optimisations\n\n**Negative:**\n- Increased operational complexity managing multiple database technologies\n- Cross-service queries become more complex\n- Need for multiple database administration skills\n- Data consistency challenges across different database systems\n- Backup and disaster recovery complexity\n\n**Mitigation:**\n- Implement robust monitoring for all database technologies\n- Use event-driven architecture for data synchronisation\n- Establish clear data ownership boundaries\n- Invest in database administration training and tooling\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "3",
+      "status" : "Accepted",
+      "title" : "Use Polyglot Persistence Strategy"
+    }, {
+      "content" : "# 4. Implement Event-Driven Architecture with Message Queues\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nOur microservices architecture requires reliable communication between services. We need to handle:\n\n- Order processing workflows that span multiple services\n- Real-time inventory updates across fulfillment and e-commerce systems\n- Marketing campaign triggers based on customer behavior\n- Asynchronous notifications and email sending\n- Decoupling of services to prevent cascading failures\n\nSynchronous API calls alone would create tight coupling and potential cascade failures.\n\n## Decision\n\nWe will implement event-driven architecture using message queues for asynchronous communication:\n\n- **Apache Kafka** for high-throughput event streaming (e-commerce and marketing systems)\n- **RabbitMQ** for reliable message delivery (fulfillment system)\n\nServices will publish domain events (order placed, payment processed, inventory updated) and subscribe to relevant events from other services.\n\n## Consequences\n\n**Positive:**\n- Loose coupling between services\n- Better resilience - services can handle temporary unavailability of dependencies\n- Scalability - async processing allows for better resource utilisation\n- Audit trail - events provide natural business process logging\n- Flexibility - new services can easily subscribe to existing events\n\n**Negative:**\n- Eventual consistency - data may be temporarily inconsistent across services\n- Complexity in handling message ordering and duplicate processing\n- Debugging distributed workflows becomes more challenging\n- Need for sophisticated monitoring of message queues\n- Potential message loss scenarios need handling\n\n**Mitigation:**\n- Implement idempotent message handlers\n- Use message deduplication strategies\n- Establish clear event schemas and versioning\n- Implement comprehensive monitoring and alerting\n- Design for graceful degradation when message queues are unavailable\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "4",
+      "status" : "Accepted",
+      "title" : "Implement Event-Driven Architecture with Message Queues"
+    }, {
+      "content" : "# 5. Use API Gateway Pattern\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nWith multiple microservices, we face challenges with:\n\n- Client applications needing to know about multiple service endpoints\n- Cross-cutting concerns like authentication, rate limiting, and logging\n- Different API versions and protocols across services\n- Security policies and access control\n- Load balancing and service discovery\n\nDirect client-to-service communication would create tight coupling and duplicate cross-cutting functionality.\n\n## Decision\n\nWe will implement the API Gateway pattern using Spring Cloud Gateway for both e-commerce and marketing systems:\n\n- Single entry point for all client API requests\n- Handle cross-cutting concerns (authentication, rate limiting, CORS)\n- Route requests to appropriate microservices\n- API composition and protocol translation\n- Request/response transformation and validation\n\n## Consequences\n\n**Positive:**\n- Simplified client development - single endpoint to manage\n- Centralised handling of cross-cutting concerns\n- Better security through single controlled entry point\n- Easier API versioning and backward compatibility\n- Load balancing and failover capabilities\n- Centralised logging and monitoring of API calls\n\n**Negative:**\n- Potential single point of failure\n- Additional network hop adds latency\n- Gateway becomes a bottleneck if not properly scaled\n- Complexity in managing routing rules\n- Risk of creating a distributed monolith if gateway becomes too intelligent\n\n**Mitigation:**\n- Implement high availability for API gateways\n- Keep gateway logic lightweight - focus on routing and cross-cutting concerns\n- Use circuit breakers to handle downstream service failures\n- Implement proper caching strategies\n- Monitor gateway performance and scale horizontally as needed\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "5",
+      "status" : "Accepted",
+      "title" : "Use API Gateway Pattern"
+    }, {
+      "content" : "# 6. Adopt Technology Diversity Strategy\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nDifferent services in our platform have varying requirements and our development teams have different expertise:\n\n- Some services require high-performance concurrent processing\n- Others need rapid development and flexibility\n- Team expertise spans Java, Node.js, Python, and Go\n- Different domains may benefit from specialised frameworks and libraries\n- We want to leverage the best tools for each specific use case\n\n## Decision\n\nWe will adopt a controlled technology diversity approach with the following technology stack:\n\n**Backend Services:**\n- **Spring Boot/Java** - User Service, Order Management (enterprise-grade, strong consistency)\n- **Node.js/Express** - Catalog Service, Inventory Service, Email Campaigns (rapid development, JSON handling)\n- **Python/FastAPI** - Payment Service, Analytics Services (data processing, ML libraries)\n- **Go** - Shipping Service (high-performance, concurrent processing)\n\n**Frontend:**\n- **React/JavaScript** - Web Application and Admin Panel (team expertise, component reusability)\n\n**Infrastructure:**\n- **Spring Cloud Gateway** - API Gateways (Java ecosystem integration)\n\n## Consequences\n\n**Positive:**\n- Optimal technology choice for each service's requirements\n- Leverages existing team expertise effectively\n- Allows teams to use best-in-class libraries and frameworks\n- Enables hiring specialists in different technologies\n- Services can evolve independently with their optimal tech stack\n\n**Negative:**\n- Increased operational complexity with multiple runtimes\n- Need for diverse skillsets in the team\n- Different deployment and monitoring approaches\n- Potential knowledge silos\n- More complex CI/CD pipeline setup\n\n**Mitigation:**\n- Establish common patterns for logging, monitoring, and health checks\n- Use containerisation (Docker) to standardise deployment\n- Create shared libraries and templates for common functionality\n- Implement cross-training programs for critical services\n- Maintain clear documentation and architectural guidelines\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "6",
+      "status" : "Accepted",
+      "title" : "Adopt Technology Diversity Strategy"
+    }, {
+      "content" : "# 7. Separate E-commerce and Fulfillment Systems\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nTraditional e-commerce architectures often tightly couple order management with fulfillment processes. However, we have identified distinct concerns:\n\n**E-commerce System Concerns:**\n- Customer experience and order capture\n- Product catalog management\n- Payment processing\n- User account management\n\n**Fulfillment System Concerns:**\n- Inventory management and reservations\n- Warehouse operations (picking, packing)\n- Shipping carrier integration\n- Order tracking and notifications\n\nThese domains have different scaling patterns, business rules, and operational requirements.\n\n## Decision\n\nWe will implement separate E-commerce and Fulfillment systems as distinct bounded contexts:\n\n**E-commerce System** will handle:\n- Customer-facing web application\n- Product catalog and search\n- Order placement and payment processing\n- Customer account management\n\n**Fulfillment System** will handle:\n- Order management and validation\n- Inventory tracking and reservations\n- Warehouse operations coordination\n- Shipping and delivery management\n\nCommunication between systems will be event-driven, with the E-commerce system publishing order events that the Fulfillment system consumes.\n\n## Consequences\n\n**Positive:**\n- Clear separation of business concerns and responsibilities\n- Independent scaling based on different usage patterns\n- Fulfillment system can serve multiple sales channels (web, mobile, B2B)\n- Different teams can own and optimise each system independently\n- Better fault isolation - fulfillment issues don't impact order placement\n- Easier integration with external fulfillment providers\n\n**Negative:**\n- More complex order-to-delivery workflow spanning systems\n- Eventual consistency between order status and fulfillment status\n- Need for sophisticated event handling and error recovery\n- More complex customer experience for order tracking\n\n**Mitigation:**\n- Implement robust event-driven communication patterns\n- Design clear APIs for order status synchronisation\n- Use saga patterns for distributed transaction management\n- Provide unified customer experience through API composition\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "7",
+      "status" : "Accepted",
+      "title" : "Separate E-commerce and Fulfillment Systems"
+    }, {
+      "content" : "# 8. Integrate with External Service Providers\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nBuilding all capabilities in-house would require significant development effort and expertise in specialised domains. We have identified several areas where external service providers offer mature, reliable solutions:\n\n- Payment processing with PCI compliance\n- Email delivery with high deliverability rates\n- Shipping and logistics with multiple carriers\n- Tax calculation with regulatory compliance\n- Analytics and business intelligence\n- CRM functionality\n- Product search with advanced algorithms\n\n## Decision\n\nWe will integrate with best-of-breed external service providers for non-core functionality:\n\n**External Systems:**\n- **Payment Provider** - Handle payment processing, fraud detection, PCI compliance\n- **Email Service** - Transactional emails, marketing campaigns, deliverability management\n- **Shipping Provider** - Multi-carrier shipping, rate calculation, tracking\n- **Tax Calculation Service** - Tax compliance, rate calculation, reporting\n- **Analytics Platform** - Business intelligence, data warehousing, reporting\n- **CRM System** - Customer relationship management, sales pipeline\n- **Search Service** - Advanced product search, recommendations, personalisation\n\n**Integration Approach:**\n- API-first integration with well-defined service contracts\n- Event-driven updates for data synchronisation\n- Fallback mechanisms for service unavailability\n\n## Consequences\n\n**Positive:**\n- Faster time-to-market by leveraging existing solutions\n- Access to specialised expertise and advanced features\n- Reduced development and maintenance costs for non-core functionality\n- Better compliance and security for regulated areas (payments, taxes)\n- Automatic updates and improvements from service providers\n\n**Negative:**\n- Vendor dependency and potential lock-in\n- Integration complexity and maintenance overhead\n- Data privacy and security concerns with external data sharing\n- Potential service availability issues outside our control\n- Ongoing subscription costs\n\n**Mitigation:**\n- Implement adapter patterns to minimise vendor lock-in\n- Establish SLAs and monitoring for external service availability\n- Use circuit breakers and fallback mechanisms\n- Regular review of vendor contracts and alternatives\n- Data encryption and privacy controls for external integrations\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "8",
+      "status" : "Accepted",
+      "title" : "Integrate with External Service Providers"
+    }, {
+      "content" : "# 9. Implement Dedicated Marketing System\n\nDate: 2025-08-28\n\n## Status\n\nAccepted\n\n## Context\n\nCustomer acquisition and retention require sophisticated marketing capabilities:\n\n- Targeted email campaigns based on customer behavior\n- Customer segmentation for personalsed marketing\n- Campaign performance analytics and optimisation\n- Integration with customer data from the e-commerce platform\n- Marketing automation workflows\n\nInitially considered building these features into the main e-commerce system, but identified distinct concerns and scaling patterns for marketing functionality.\n\n## Decision\n\nWe will implement a dedicated Marketing System as a separate bounded context with the following capabilities:\n\n**Core Services:**\n- **Campaign Manager** - Create and manage marketing campaigns\n- **Segmentation Service** - Customer segmentation and targeting\n- **Email Campaign Service** - Marketing email delivery and tracking\n- **Analytics Service** - Marketing performance analysis\n\n**Key Features:**\n- Customer data synchronisation with e-commerce system\n- Automated campaign triggers based on customer behavior\n- A/B testing for campaign optimisation\n- Integration with external analytics providers\n\n## Consequences\n\n**Positive:**\n- Specialised focus on marketing automation and analytics\n- Independent scaling based on campaign volumes\n- Marketing team can work independently without impacting core e-commerce\n- Better integration with marketing-specific tools and analytics\n- Enables advanced features like predictive analytics and ML-driven segmentation\n- Clear data ownership for marketing campaigns and customer insights\n\n**Negative:**\n- Additional system complexity and operational overhead\n- Need for data synchronisation with e-commerce system\n- Potential data consistency issues between systems\n- More complex customer journey tracking across systems\n\n**Mitigation:**\n- Implement real-time event streaming for customer data synchronisation\n- Use eventual consistency patterns with proper conflict resolution\n- Establish clear data governance policies\n- Implement comprehensive customer journey tracking across systems\n- Use API gateways to provide unified customer experience\n",
+      "date" : "2025-08-28T00:00:00Z",
+      "format" : "Markdown",
+      "id" : "9",
+      "status" : "Accepted",
+      "title" : "Implement Dedicated Marketing System"
+    } ]
+  },
+  "id" : 1,
+  "lastModifiedAgent" : "structurizr-ui",
+  "lastModifiedDate" : "2025-08-28T13:20:16Z",
+  "model" : {
+    "people" : [ {
+      "description" : "A customer of our e-commerce platform",
+      "id" : "1",
+      "location" : "Unspecified",
+      "name" : "Customer",
+      "properties" : {
+        "structurizr.dsl.identifier" : "customer"
+      },
+      "relationships" : [ {
+        "description" : "Uses",
+        "destinationId" : "13",
+        "id" : "24",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses",
+        "destinationId" : "3",
+        "id" : "25",
+        "linkedRelationshipId" : "24",
+        "sourceId" : "1"
+      }, {
+        "description" : "Uses for support requests",
+        "destinationId" : "114",
+        "id" : "126",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses for support requests",
+        "destinationId" : "113",
+        "id" : "127",
+        "linkedRelationshipId" : "126",
+        "sourceId" : "1"
+      }, {
+        "description" : "Searches for products via",
+        "destinationId" : "157",
+        "id" : "167",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Searches for products via",
+        "destinationId" : "9",
+        "id" : "168",
+        "linkedRelationshipId" : "167",
+        "sourceId" : "1"
+      }, {
+        "description" : "Gets personalized recommendations from",
+        "destinationId" : "193",
+        "id" : "204",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Gets personalized recommendations from",
+        "destinationId" : "8",
+        "id" : "205",
+        "linkedRelationshipId" : "204",
+        "sourceId" : "1"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Administrative user managing the platform",
+      "id" : "10",
+      "location" : "Unspecified",
+      "name" : "Administrator",
+      "properties" : {
+        "structurizr.dsl.identifier" : "admin"
+      },
+      "relationships" : [ {
+        "description" : "Uses",
+        "destinationId" : "14",
+        "id" : "26",
+        "sourceId" : "10",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses",
+        "destinationId" : "3",
+        "id" : "27",
+        "linkedRelationshipId" : "26",
+        "sourceId" : "10"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Marketing team member managing campaigns",
+      "id" : "73",
+      "location" : "Unspecified",
+      "name" : "Marketer",
+      "properties" : {
+        "structurizr.dsl.identifier" : "marketer"
+      },
+      "relationships" : [ {
+        "description" : "Manages campaigns with",
+        "destinationId" : "5",
+        "id" : "85",
+        "sourceId" : "73",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses",
+        "destinationId" : "76",
+        "id" : "90",
+        "sourceId" : "73",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Analyzes marketing data and performance",
+      "id" : "74",
+      "location" : "Unspecified",
+      "name" : "Analyst",
+      "properties" : {
+        "structurizr.dsl.identifier" : "analyst"
+      },
+      "relationships" : [ {
+        "description" : "Analyzes data with",
+        "destinationId" : "5",
+        "id" : "86",
+        "sourceId" : "74",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses",
+        "destinationId" : "79",
+        "id" : "91",
+        "sourceId" : "74",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Customer service representative handling support tickets",
+      "id" : "111",
+      "location" : "Unspecified",
+      "name" : "Support Agent",
+      "properties" : {
+        "structurizr.dsl.identifier" : "supportagent"
+      },
+      "relationships" : [ {
+        "description" : "Uses to manage support tickets",
+        "destinationId" : "115",
+        "id" : "128",
+        "sourceId" : "111",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses to manage support tickets",
+        "destinationId" : "113",
+        "id" : "129",
+        "linkedRelationshipId" : "128",
+        "sourceId" : "111"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Manages support operations and team performance",
+      "id" : "112",
+      "location" : "Unspecified",
+      "name" : "Support Manager",
+      "properties" : {
+        "structurizr.dsl.identifier" : "supportmanager"
+      },
+      "relationships" : [ {
+        "description" : "Uses to view support analytics",
+        "destinationId" : "121",
+        "id" : "130",
+        "sourceId" : "112",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses to view support analytics",
+        "destinationId" : "113",
+        "id" : "131",
+        "linkedRelationshipId" : "130",
+        "sourceId" : "112"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Analyzes search patterns and optimizes search experience",
+      "id" : "155",
+      "location" : "Unspecified",
+      "name" : "Search Analyst",
+      "properties" : {
+        "structurizr.dsl.identifier" : "searchanalyst"
+      },
+      "relationships" : [ {
+        "description" : "Optimizes search experience using",
+        "destinationId" : "161",
+        "id" : "171",
+        "sourceId" : "155",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Optimizes search experience using",
+        "destinationId" : "9",
+        "id" : "172",
+        "linkedRelationshipId" : "171",
+        "sourceId" : "155"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Manages product visibility and search rankings",
+      "id" : "156",
+      "location" : "Unspecified",
+      "name" : "Merchandiser",
+      "properties" : {
+        "structurizr.dsl.identifier" : "merchandiser"
+      },
+      "relationships" : [ {
+        "description" : "Analyzes search performance with",
+        "destinationId" : "161",
+        "id" : "169",
+        "sourceId" : "156",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Analyzes search performance with",
+        "destinationId" : "9",
+        "id" : "170",
+        "linkedRelationshipId" : "169",
+        "sourceId" : "156"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Develops and optimizes recommendation algorithms",
+      "id" : "191",
+      "location" : "Unspecified",
+      "name" : "Data Scientist",
+      "properties" : {
+        "structurizr.dsl.identifier" : "datascientist"
+      },
+      "relationships" : [ {
+        "description" : "Develops models with",
+        "destinationId" : "194",
+        "id" : "206",
+        "sourceId" : "191",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Develops models with",
+        "destinationId" : "8",
+        "id" : "207",
+        "linkedRelationshipId" : "206",
+        "sourceId" : "191"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "description" : "Maintains and monitors machine learning models",
+      "id" : "192",
+      "location" : "Unspecified",
+      "name" : "ML Engineer",
+      "properties" : {
+        "structurizr.dsl.identifier" : "mlengineer"
+      },
+      "relationships" : [ {
+        "description" : "Monitors models using",
+        "destinationId" : "197",
+        "id" : "208",
+        "sourceId" : "192",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Monitors models using",
+        "destinationId" : "8",
+        "id" : "209",
+        "linkedRelationshipId" : "208",
+        "sourceId" : "192"
+      }, {
+        "description" : "Manages experiments with",
+        "destinationId" : "198",
+        "id" : "210",
+        "sourceId" : "192",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Person"
+    } ],
+    "softwareSystems" : [ {
+      "description" : "External email delivery service",
+      "documentation" : { },
+      "id" : "2",
+      "location" : "Unspecified",
+      "name" : "Email Service",
+      "properties" : {
+        "structurizr.dsl.identifier" : "emailservice"
+      },
+      "tags" : "Element,Software System,External"
+    }, {
+      "containers" : [ {
+        "description" : "Customer-facing web interface",
+        "documentation" : { },
+        "id" : "13",
+        "name" : "Web Application",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.webapp"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "15",
+          "id" : "28",
+          "sourceId" : "13",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "React/JavaScript"
+      }, {
+        "description" : "Administrative interface",
+        "documentation" : { },
+        "id" : "14",
+        "name" : "Admin Panel",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.adminpanel"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "15",
+          "id" : "29",
+          "sourceId" : "14",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "React/JavaScript"
+      }, {
+        "description" : "Entry point for all API requests",
+        "documentation" : { },
+        "id" : "15",
+        "name" : "API Gateway",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.apigateway"
+        },
+        "relationships" : [ {
+          "description" : "Routes requests to",
+          "destinationId" : "16",
+          "id" : "30",
+          "sourceId" : "15",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "17",
+          "id" : "31",
+          "sourceId" : "15",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "18",
+          "id" : "32",
+          "sourceId" : "15",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Cloud Gateway"
+      }, {
+        "description" : "Manages customer accounts and authentication",
+        "documentation" : { },
+        "id" : "16",
+        "name" : "User Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.userservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "20",
+          "id" : "33",
+          "sourceId" : "16",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes events to",
+          "destinationId" : "23",
+          "id" : "43",
+          "sourceId" : "16",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Boot/Java"
+      }, {
+        "description" : "Manages product catalog",
+        "documentation" : { },
+        "id" : "17",
+        "name" : "Catalog Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.catalogservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "21",
+          "id" : "34",
+          "sourceId" : "17",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Node.js/Express"
+      }, {
+        "description" : "Handles order processing",
+        "documentation" : { },
+        "id" : "18",
+        "name" : "Order Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.orderservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "22",
+          "id" : "35",
+          "sourceId" : "18",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Initiates payments via",
+          "destinationId" : "19",
+          "id" : "36",
+          "sourceId" : "18",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Calculates taxes via",
+          "destinationId" : "11",
+          "id" : "37",
+          "sourceId" : "18",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes events to",
+          "destinationId" : "23",
+          "id" : "42",
+          "sourceId" : "18",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Sends order confirmations via",
+          "destinationId" : "2",
+          "id" : "44",
+          "sourceId" : "18",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Boot/Java"
+      }, {
+        "description" : "Processes payments",
+        "documentation" : { },
+        "id" : "19",
+        "name" : "Payment Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.paymentservice"
+        },
+        "relationships" : [ {
+          "description" : "Processes payments via",
+          "destinationId" : "12",
+          "id" : "39",
+          "sourceId" : "19",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes events to",
+          "destinationId" : "23",
+          "id" : "41",
+          "sourceId" : "19",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Stores user account information",
+        "documentation" : { },
+        "id" : "20",
+        "name" : "User Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.userdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Stores product information",
+        "documentation" : { },
+        "id" : "21",
+        "name" : "Catalog Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.catalogdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "MongoDB"
+      }, {
+        "description" : "Stores order data",
+        "documentation" : { },
+        "id" : "22",
+        "name" : "Order Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.orderdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Handles asynchronous communication",
+        "documentation" : { },
+        "id" : "23",
+        "name" : "Message Queue",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ecommercesystem.messagequeue"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Apache Kafka"
+      } ],
+      "description" : "Core e-commerce functionality",
+      "documentation" : { },
+      "id" : "3",
+      "location" : "Unspecified",
+      "name" : "E-commerce Platform",
+      "properties" : {
+        "structurizr.dsl.identifier" : "ecommercesystem"
+      },
+      "relationships" : [ {
+        "description" : "Calculates taxes via",
+        "destinationId" : "11",
+        "id" : "38",
+        "linkedRelationshipId" : "37",
+        "sourceId" : "3"
+      }, {
+        "description" : "Processes payments via",
+        "destinationId" : "12",
+        "id" : "40",
+        "linkedRelationshipId" : "39",
+        "sourceId" : "3"
+      }, {
+        "description" : "Sends order confirmations via",
+        "destinationId" : "2",
+        "id" : "45",
+        "linkedRelationshipId" : "44",
+        "sourceId" : "3"
+      } ],
+      "tags" : "Element,Software System"
+    }, {
+      "containers" : [ {
+        "description" : "Handles order intake, validation, and tracking",
+        "documentation" : { },
+        "id" : "47",
+        "name" : "Order Management Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.ordermanagement"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "52",
+          "id" : "56",
+          "sourceId" : "47",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Checks and reserves stock",
+          "destinationId" : "48",
+          "id" : "57",
+          "sourceId" : "47",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Triggers order confirmation",
+          "destinationId" : "51",
+          "id" : "58",
+          "sourceId" : "47",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes order events",
+          "destinationId" : "55",
+          "id" : "59",
+          "sourceId" : "47",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Boot/Java"
+      }, {
+        "description" : "Manages stock levels and reservations",
+        "documentation" : { },
+        "id" : "48",
+        "name" : "Inventory Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.inventoryservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "53",
+          "id" : "60",
+          "sourceId" : "48",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes inventory events",
+          "destinationId" : "55",
+          "id" : "61",
+          "sourceId" : "48",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Node.js/Express"
+      }, {
+        "description" : "Coordinates picking, packing, and shipping",
+        "documentation" : { },
+        "id" : "49",
+        "name" : "Warehouse Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.warehouseservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "54",
+          "id" : "62",
+          "sourceId" : "49",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Updates inventory after fulfilment",
+          "destinationId" : "48",
+          "id" : "63",
+          "sourceId" : "49",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Requests shipment",
+          "destinationId" : "50",
+          "id" : "64",
+          "sourceId" : "49",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes fulfilment events",
+          "destinationId" : "55",
+          "id" : "65",
+          "sourceId" : "49",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Integrates with carriers and manages shipments",
+        "documentation" : { },
+        "id" : "50",
+        "name" : "Shipping Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.shippingservice"
+        },
+        "relationships" : [ {
+          "description" : "Integrates with carriers via",
+          "destinationId" : "46",
+          "id" : "66",
+          "sourceId" : "50",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes shipping events",
+          "destinationId" : "55",
+          "id" : "68",
+          "sourceId" : "50",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Triggers shipping notifications",
+          "destinationId" : "51",
+          "id" : "69",
+          "sourceId" : "50",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Go"
+      }, {
+        "description" : "Sends order and shipping notifications",
+        "documentation" : { },
+        "id" : "51",
+        "name" : "Notification Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.notificationservice"
+        },
+        "relationships" : [ {
+          "description" : "Consumes events",
+          "destinationId" : "55",
+          "id" : "70",
+          "sourceId" : "51",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Sends emails",
+          "destinationId" : "2",
+          "id" : "71",
+          "sourceId" : "51",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Node.js"
+      }, {
+        "description" : "Stores order data",
+        "documentation" : { },
+        "id" : "52",
+        "name" : "Order Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.orderdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Stores inventory data",
+        "documentation" : { },
+        "id" : "53",
+        "name" : "Inventory Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.inventorydatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "MongoDB"
+      }, {
+        "description" : "Stores warehouse operations data",
+        "documentation" : { },
+        "id" : "54",
+        "name" : "Warehouse Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.warehousedatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "MySQL"
+      }, {
+        "description" : "Handles asynchronous events",
+        "documentation" : { },
+        "id" : "55",
+        "name" : "Message Queue",
+        "properties" : {
+          "structurizr.dsl.identifier" : "fulfilmentsystem.messagequeue"
+        },
+        "tags" : "Element,Container",
+        "technology" : "RabbitMQ"
+      } ],
+      "description" : "Order fulfilment system",
+      "documentation" : { },
+      "id" : "4",
+      "location" : "Unspecified",
+      "name" : "Fulfilment Platform",
+      "properties" : {
+        "structurizr.dsl.identifier" : "fulfilmentsystem"
+      },
+      "relationships" : [ {
+        "description" : "Integrates with carriers via",
+        "destinationId" : "46",
+        "id" : "67",
+        "linkedRelationshipId" : "66",
+        "sourceId" : "4"
+      }, {
+        "description" : "Sends emails",
+        "destinationId" : "2",
+        "id" : "72",
+        "linkedRelationshipId" : "71",
+        "sourceId" : "4"
+      } ],
+      "tags" : "Element,Software System"
+    }, {
+      "containers" : [ {
+        "description" : "Manages marketing campaigns and promotions",
+        "documentation" : { },
+        "id" : "76",
+        "name" : "Campaign Manager",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.campaignmanager"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "80",
+          "id" : "92",
+          "sourceId" : "76",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Reads from and writes to",
+          "destinationId" : "81",
+          "id" : "100",
+          "sourceId" : "76",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Gets customer segments from",
+          "destinationId" : "77",
+          "id" : "103",
+          "sourceId" : "76",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Schedules email campaigns via",
+          "destinationId" : "78",
+          "id" : "104",
+          "sourceId" : "76",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes events to",
+          "destinationId" : "84",
+          "id" : "108",
+          "sourceId" : "76",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Boot/Java"
+      }, {
+        "description" : "Segments customers for targeted marketing",
+        "documentation" : { },
+        "id" : "77",
+        "name" : "Segmentation Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.segmentationservice"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "80",
+          "id" : "93",
+          "sourceId" : "77",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Reads from and writes to",
+          "destinationId" : "82",
+          "id" : "101",
+          "sourceId" : "77",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes events to",
+          "destinationId" : "84",
+          "id" : "109",
+          "sourceId" : "77",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Schedules and sends marketing emails",
+        "documentation" : { },
+        "id" : "78",
+        "name" : "Email Campaign Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.emailcampaignservice"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "80",
+          "id" : "94",
+          "sourceId" : "78",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Sends emails via",
+          "destinationId" : "2",
+          "id" : "105",
+          "sourceId" : "78",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Node.js/Express"
+      }, {
+        "description" : "Collects and analyzes marketing data",
+        "documentation" : { },
+        "id" : "79",
+        "name" : "Analytics Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.analyticsservice"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "80",
+          "id" : "95",
+          "sourceId" : "79",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Reads from and writes to",
+          "destinationId" : "83",
+          "id" : "102",
+          "sourceId" : "79",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Sends tracking data to",
+          "destinationId" : "75",
+          "id" : "106",
+          "sourceId" : "79",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes events to",
+          "destinationId" : "84",
+          "id" : "107",
+          "sourceId" : "79",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Entry point for all API requests",
+        "documentation" : { },
+        "id" : "80",
+        "name" : "API Gateway",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.apigateway"
+        },
+        "relationships" : [ {
+          "description" : "Routes requests to",
+          "destinationId" : "76",
+          "id" : "96",
+          "sourceId" : "80",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "77",
+          "id" : "97",
+          "sourceId" : "80",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "78",
+          "id" : "98",
+          "sourceId" : "80",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "79",
+          "id" : "99",
+          "sourceId" : "80",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Cloud Gateway"
+      }, {
+        "description" : "Stores campaign and promotion data",
+        "documentation" : { },
+        "id" : "81",
+        "name" : "Campaign Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.campaigndatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Stores customer segments",
+        "documentation" : { },
+        "id" : "82",
+        "name" : "Segmentation Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.segmentationdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "MongoDB"
+      }, {
+        "description" : "Stores marketing analytics data",
+        "documentation" : { },
+        "id" : "83",
+        "name" : "Analytics Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.analyticsdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Handles asynchronous communication",
+        "documentation" : { },
+        "id" : "84",
+        "name" : "Message Queue",
+        "properties" : {
+          "structurizr.dsl.identifier" : "marketingsystem.messagequeue"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Apache Kafka"
+      } ],
+      "description" : "Manages campaigns and customer engagement",
+      "documentation" : { },
+      "id" : "5",
+      "location" : "Unspecified",
+      "name" : "Marketing Automation",
+      "properties" : {
+        "structurizr.dsl.identifier" : "marketingsystem"
+      },
+      "relationships" : [ {
+        "description" : "Syncs customer and order data with",
+        "destinationId" : "3",
+        "id" : "87",
+        "sourceId" : "5",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Sends marketing emails via",
+        "destinationId" : "2",
+        "id" : "88",
+        "sourceId" : "5",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Sends tracking data to",
+        "destinationId" : "75",
+        "id" : "89",
+        "sourceId" : "5",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Imports customer and order data from",
+        "destinationId" : "3",
+        "id" : "110",
+        "sourceId" : "5",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Software System"
+    }, {
+      "description" : "Customer relationship management platform",
+      "documentation" : { },
+      "id" : "6",
+      "location" : "Unspecified",
+      "name" : "CRM System",
+      "properties" : {
+        "structurizr.dsl.identifier" : "crmsystem"
+      },
+      "tags" : "Element,Software System"
+    }, {
+      "description" : "Aggregates and analyzes business data",
+      "documentation" : { },
+      "id" : "7",
+      "location" : "Unspecified",
+      "name" : "Analytics Platform",
+      "properties" : {
+        "structurizr.dsl.identifier" : "analyticssystem"
+      },
+      "tags" : "Element,Software System"
+    }, {
+      "containers" : [ {
+        "description" : "Serves personalized recommendations",
+        "documentation" : { },
+        "id" : "193",
+        "name" : "Recommendation API",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.recommendationapi"
+        },
+        "relationships" : [ {
+          "description" : "Gets predictions from",
+          "destinationId" : "197",
+          "id" : "211",
+          "sourceId" : "193",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Retrieves user features from",
+          "destinationId" : "196",
+          "id" : "212",
+          "sourceId" : "193",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Gets experiment configuration from",
+          "destinationId" : "198",
+          "id" : "213",
+          "sourceId" : "193",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Gets product information from",
+          "destinationId" : "3",
+          "id" : "226",
+          "sourceId" : "193",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Enhances search results for",
+          "destinationId" : "9",
+          "id" : "229",
+          "sourceId" : "193",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Trains and updates ML models",
+        "documentation" : { },
+        "id" : "194",
+        "name" : "Model Training Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.modeltrainingservice"
+        },
+        "relationships" : [ {
+          "description" : "Trains on historical data from",
+          "destinationId" : "201",
+          "id" : "214",
+          "sourceId" : "194",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Uses features from",
+          "destinationId" : "196",
+          "id" : "215",
+          "sourceId" : "194",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Stores trained models in",
+          "destinationId" : "199",
+          "id" : "216",
+          "sourceId" : "194",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/MLflow"
+      }, {
+        "description" : "Processes user behavior and product data",
+        "documentation" : { },
+        "id" : "195",
+        "name" : "Data Processing Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.dataprocessingservice"
+        },
+        "relationships" : [ {
+          "description" : "Processes raw data into",
+          "destinationId" : "201",
+          "id" : "217",
+          "sourceId" : "195",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Updates features in",
+          "destinationId" : "196",
+          "id" : "218",
+          "sourceId" : "195",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Consumes user events from",
+          "destinationId" : "203",
+          "id" : "219",
+          "sourceId" : "195",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Ingests user behavior from",
+          "destinationId" : "3",
+          "id" : "224",
+          "sourceId" : "195",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Sends recommendation metrics to",
+          "destinationId" : "7",
+          "id" : "227",
+          "sourceId" : "195",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Apache Spark/Python"
+      }, {
+        "description" : "Manages ML features for recommendations",
+        "documentation" : { },
+        "id" : "196",
+        "name" : "Feature Store",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.featurestore"
+        },
+        "relationships" : [ {
+          "description" : "Stores features in",
+          "destinationId" : "200",
+          "id" : "222",
+          "sourceId" : "196",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/Feast"
+      }, {
+        "description" : "Hosts and serves ML models",
+        "documentation" : { },
+        "id" : "197",
+        "name" : "Model Serving Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.modelservingservice"
+        },
+        "relationships" : [ {
+          "description" : "Loads models from",
+          "destinationId" : "199",
+          "id" : "220",
+          "sourceId" : "197",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Logs performance metrics to",
+          "destinationId" : "202",
+          "id" : "221",
+          "sourceId" : "197",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/TensorFlow Serving"
+      }, {
+        "description" : "Manages recommendation experiments",
+        "documentation" : { },
+        "id" : "198",
+        "name" : "A/B Testing Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.abtestingservice"
+        },
+        "relationships" : [ {
+          "description" : "Tracks experiment results in",
+          "destinationId" : "202",
+          "id" : "223",
+          "sourceId" : "198",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Stores trained ML models and artifacts",
+        "documentation" : { },
+        "id" : "199",
+        "name" : "Model Storage",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.modelstorage"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "MinIO/S3"
+      }, {
+        "description" : "Stores user and product features",
+        "documentation" : { },
+        "id" : "200",
+        "name" : "Feature Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.featuredatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Stores raw user interaction data",
+        "documentation" : { },
+        "id" : "201",
+        "name" : "Behavior Data Lake",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.behaviordatalake"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "Apache Parquet/S3"
+      }, {
+        "description" : "Stores model performance metrics",
+        "documentation" : { },
+        "id" : "202",
+        "name" : "Model Metrics Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.modelmetricsdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "InfluxDB"
+      }, {
+        "description" : "Handles real-time user events",
+        "documentation" : { },
+        "id" : "203",
+        "name" : "Message Queue",
+        "properties" : {
+          "structurizr.dsl.identifier" : "recommendationengine.messagequeue"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Apache Kafka"
+      } ],
+      "description" : "Provides personalized product recommendations",
+      "documentation" : { },
+      "id" : "8",
+      "location" : "Unspecified",
+      "name" : "Recommendation Engine",
+      "properties" : {
+        "structurizr.dsl.identifier" : "recommendationengine"
+      },
+      "relationships" : [ {
+        "description" : "Ingests user behavior from",
+        "destinationId" : "3",
+        "id" : "225",
+        "linkedRelationshipId" : "224",
+        "sourceId" : "8"
+      }, {
+        "description" : "Sends recommendation metrics to",
+        "destinationId" : "7",
+        "id" : "228",
+        "linkedRelationshipId" : "227",
+        "sourceId" : "8"
+      }, {
+        "description" : "Enhances search results for",
+        "destinationId" : "9",
+        "id" : "230",
+        "linkedRelationshipId" : "229",
+        "sourceId" : "8"
+      } ],
+      "tags" : "Element,Software System"
+    }, {
+      "containers" : [ {
+        "description" : "Primary search interface and orchestration",
+        "documentation" : { },
+        "id" : "157",
+        "name" : "Search API",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.searchapi"
+        },
+        "relationships" : [ {
+          "description" : "Processes queries with",
+          "destinationId" : "159",
+          "id" : "173",
+          "sourceId" : "157",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Queries products from",
+          "destinationId" : "163",
+          "id" : "174",
+          "sourceId" : "157",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Checks cached results in",
+          "destinationId" : "164",
+          "id" : "175",
+          "sourceId" : "157",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Gets filters and facets from",
+          "destinationId" : "162",
+          "id" : "176",
+          "sourceId" : "157",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Logs search events to",
+          "destinationId" : "161",
+          "id" : "181",
+          "sourceId" : "157",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Gets personalized results from",
+          "destinationId" : "8",
+          "id" : "189",
+          "sourceId" : "157",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Boot/Java"
+      }, {
+        "description" : "Processes and indexes product data",
+        "documentation" : { },
+        "id" : "158",
+        "name" : "Indexing Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.indexingservice"
+        },
+        "relationships" : [ {
+          "description" : "Maintains product index in",
+          "destinationId" : "163",
+          "id" : "179",
+          "sourceId" : "158",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Consumes product updates from",
+          "destinationId" : "166",
+          "id" : "180",
+          "sourceId" : "158",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Syncs product catalog from",
+          "destinationId" : "3",
+          "id" : "185",
+          "sourceId" : "158",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Analyzes and enhances search queries",
+        "documentation" : { },
+        "id" : "159",
+        "name" : "Query Processor",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.queryprocessor"
+        },
+        "relationships" : [ {
+          "description" : "Gets suggestions from",
+          "destinationId" : "160",
+          "id" : "177",
+          "sourceId" : "159",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Performs enhanced queries on",
+          "destinationId" : "163",
+          "id" : "178",
+          "sourceId" : "159",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Provides search suggestions and autocompletion",
+        "documentation" : { },
+        "id" : "160",
+        "name" : "Autocomplete Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.autocompleteservice"
+        },
+        "relationships" : [ {
+          "description" : "Caches suggestions in",
+          "destinationId" : "164",
+          "id" : "184",
+          "sourceId" : "160",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Node.js/Express"
+      }, {
+        "description" : "Tracks search behavior and performance",
+        "documentation" : { },
+        "id" : "161",
+        "name" : "Search Analytics",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.searchanalytics"
+        },
+        "relationships" : [ {
+          "description" : "Stores metrics in",
+          "destinationId" : "165",
+          "id" : "182",
+          "sourceId" : "161",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Sends search metrics to",
+          "destinationId" : "7",
+          "id" : "187",
+          "sourceId" : "161",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Manages search filters and faceted navigation",
+        "documentation" : { },
+        "id" : "162",
+        "name" : "Facet Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.facetservice"
+        },
+        "relationships" : [ {
+          "description" : "Retrieves facet data from",
+          "destinationId" : "163",
+          "id" : "183",
+          "sourceId" : "162",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Boot/Java"
+      }, {
+        "description" : "Elasticsearch cluster for product search",
+        "documentation" : { },
+        "id" : "163",
+        "name" : "Search Index",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.searchindex"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "Elasticsearch"
+      }, {
+        "description" : "Caches frequent searches and results",
+        "documentation" : { },
+        "id" : "164",
+        "name" : "Search Cache",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.searchcache"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "Redis"
+      }, {
+        "description" : "Stores search analytics and metrics",
+        "documentation" : { },
+        "id" : "165",
+        "name" : "Analytics Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.analyticsdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Handles asynchronous data updates",
+        "documentation" : { },
+        "id" : "166",
+        "name" : "Message Queue",
+        "properties" : {
+          "structurizr.dsl.identifier" : "searchservice.messagequeue"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Apache Kafka"
+      } ],
+      "description" : "Enables product search functionality",
+      "documentation" : { },
+      "id" : "9",
+      "location" : "Unspecified",
+      "name" : "Search Service",
+      "properties" : {
+        "structurizr.dsl.identifier" : "searchservice"
+      },
+      "relationships" : [ {
+        "description" : "Syncs product catalog from",
+        "destinationId" : "3",
+        "id" : "186",
+        "linkedRelationshipId" : "185",
+        "sourceId" : "9"
+      }, {
+        "description" : "Sends search metrics to",
+        "destinationId" : "7",
+        "id" : "188",
+        "linkedRelationshipId" : "187",
+        "sourceId" : "9"
+      }, {
+        "description" : "Gets personalized results from",
+        "destinationId" : "8",
+        "id" : "190",
+        "linkedRelationshipId" : "189",
+        "sourceId" : "9"
+      } ],
+      "tags" : "Element,Software System"
+    }, {
+      "description" : "Handles tax calculations and compliance",
+      "documentation" : { },
+      "id" : "11",
+      "location" : "Unspecified",
+      "name" : "Tax Calculation Service",
+      "properties" : {
+        "structurizr.dsl.identifier" : "taxservice"
+      },
+      "tags" : "Element,Software System,External"
+    }, {
+      "description" : "External payment processing",
+      "documentation" : { },
+      "id" : "12",
+      "location" : "Unspecified",
+      "name" : "Payment Provider",
+      "properties" : {
+        "structurizr.dsl.identifier" : "paymentprovider"
+      },
+      "tags" : "Element,Software System,External"
+    }, {
+      "description" : "External shipping and logistics integration",
+      "documentation" : { },
+      "id" : "46",
+      "location" : "Unspecified",
+      "name" : "Shipping Provider",
+      "properties" : {
+        "structurizr.dsl.identifier" : "shippingprovider"
+      },
+      "tags" : "Element,Software System,External"
+    }, {
+      "description" : "External analytics and tracking",
+      "documentation" : { },
+      "id" : "75",
+      "location" : "Unspecified",
+      "name" : "Analytics Provider",
+      "properties" : {
+        "structurizr.dsl.identifier" : "analyticsprovider"
+      },
+      "tags" : "Element,Software System,External"
+    }, {
+      "containers" : [ {
+        "description" : "Customer-facing support interface",
+        "documentation" : { },
+        "id" : "114",
+        "name" : "Support Portal",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.supportportal"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "116",
+          "id" : "132",
+          "sourceId" : "114",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "React/JavaScript"
+      }, {
+        "description" : "Support agent interface for managing tickets",
+        "documentation" : { },
+        "id" : "115",
+        "name" : "Agent Dashboard",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.agentdashboard"
+        },
+        "relationships" : [ {
+          "description" : "Makes API calls to",
+          "destinationId" : "116",
+          "id" : "133",
+          "sourceId" : "115",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "React/JavaScript"
+      }, {
+        "description" : "Entry point for all API requests",
+        "documentation" : { },
+        "id" : "116",
+        "name" : "API Gateway",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.apigateway"
+        },
+        "relationships" : [ {
+          "description" : "Routes requests to",
+          "destinationId" : "117",
+          "id" : "134",
+          "sourceId" : "116",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "118",
+          "id" : "135",
+          "sourceId" : "116",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "119",
+          "id" : "136",
+          "sourceId" : "116",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Routes requests to",
+          "destinationId" : "121",
+          "id" : "137",
+          "sourceId" : "116",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Cloud Gateway"
+      }, {
+        "description" : "Manages support tickets and workflow",
+        "documentation" : { },
+        "id" : "117",
+        "name" : "Ticket Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.ticketservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "122",
+          "id" : "138",
+          "sourceId" : "117",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Triggers ticket notifications via",
+          "destinationId" : "120",
+          "id" : "142",
+          "sourceId" : "117",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes ticket events to",
+          "destinationId" : "125",
+          "id" : "147",
+          "sourceId" : "117",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Retrieves customer and order data from",
+          "destinationId" : "3",
+          "id" : "149",
+          "sourceId" : "117",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Updates customer support history in",
+          "destinationId" : "6",
+          "id" : "151",
+          "sourceId" : "117",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Spring Boot/Java"
+      }, {
+        "description" : "Manages help articles and FAQs",
+        "documentation" : { },
+        "id" : "118",
+        "name" : "Knowledge Base Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.knowledgebaseservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "123",
+          "id" : "139",
+          "sourceId" : "118",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Node.js/Express"
+      }, {
+        "description" : "Handles real-time customer chat",
+        "documentation" : { },
+        "id" : "119",
+        "name" : "Live Chat Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.chatservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "124",
+          "id" : "140",
+          "sourceId" : "119",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Triggers chat notifications via",
+          "destinationId" : "120",
+          "id" : "143",
+          "sourceId" : "119",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes chat events to",
+          "destinationId" : "125",
+          "id" : "148",
+          "sourceId" : "119",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Node.js/Socket.io"
+      }, {
+        "description" : "Sends support-related notifications",
+        "documentation" : { },
+        "id" : "120",
+        "name" : "Notification Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.notificationservice"
+        },
+        "relationships" : [ {
+          "description" : "Sends emails via",
+          "destinationId" : "2",
+          "id" : "144",
+          "sourceId" : "120",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publishes notification events to",
+          "destinationId" : "125",
+          "id" : "146",
+          "sourceId" : "120",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Generates support analytics and reports",
+        "documentation" : { },
+        "id" : "121",
+        "name" : "Reporting Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.reportingservice"
+        },
+        "relationships" : [ {
+          "description" : "Reads analytics data from",
+          "destinationId" : "122",
+          "id" : "141",
+          "sourceId" : "121",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Sends support metrics to",
+          "destinationId" : "7",
+          "id" : "153",
+          "sourceId" : "121",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python/FastAPI"
+      }, {
+        "description" : "Stores support tickets and interactions",
+        "documentation" : { },
+        "id" : "122",
+        "name" : "Ticket Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.ticketdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Stores help articles and documentation",
+        "documentation" : { },
+        "id" : "123",
+        "name" : "Knowledge Base Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.knowledgebasedatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "MongoDB"
+      }, {
+        "description" : "Stores chat conversations and history",
+        "documentation" : { },
+        "id" : "124",
+        "name" : "Chat Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.chatdatabase"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "Redis"
+      }, {
+        "description" : "Handles asynchronous communication",
+        "documentation" : { },
+        "id" : "125",
+        "name" : "Message Queue",
+        "properties" : {
+          "structurizr.dsl.identifier" : "supportsystem.messagequeue"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Apache Kafka"
+      } ],
+      "description" : "Handles customer inquiries and support operations",
+      "documentation" : { },
+      "id" : "113",
+      "location" : "Unspecified",
+      "name" : "Customer Support Platform",
+      "properties" : {
+        "structurizr.dsl.identifier" : "supportsystem"
+      },
+      "relationships" : [ {
+        "description" : "Sends emails via",
+        "destinationId" : "2",
+        "id" : "145",
+        "linkedRelationshipId" : "144",
+        "sourceId" : "113"
+      }, {
+        "description" : "Retrieves customer and order data from",
+        "destinationId" : "3",
+        "id" : "150",
+        "linkedRelationshipId" : "149",
+        "sourceId" : "113"
+      }, {
+        "description" : "Updates customer support history in",
+        "destinationId" : "6",
+        "id" : "152",
+        "linkedRelationshipId" : "151",
+        "sourceId" : "113"
+      }, {
+        "description" : "Sends support metrics to",
+        "destinationId" : "7",
+        "id" : "154",
+        "linkedRelationshipId" : "153",
+        "sourceId" : "113"
+      } ],
+      "tags" : "Element,Software System"
+    } ]
+  },
+  "name" : "Retail Business",
+  "properties" : {
+    "structurizr.dsl" : "d29ya3NwYWNlICJSZXRhaWwgQnVzaW5lc3MiICJBcmNoaXRlY3R1cmUgZm9yIG91ciBvbmxpbmUgcmV0YWlsIGJ1c2luZXNzIiB7CiAgICAhaWRlbnRpZmllcnMgaGllcmFyY2hpY2FsCgogICAgbW9kZWwgewogICAgICAgICMgRGVmaW5lIHBlb3BsZSBhbmQgZXh0ZXJuYWwgc3lzdGVtcwogICAgICAgIGN1c3RvbWVyID0gcGVyc29uICJDdXN0b21lciIgIkEgY3VzdG9tZXIgb2Ygb3VyIGUtY29tbWVyY2UgcGxhdGZvcm0iCiAgICAgICAgCiAgICAgICAgZW1haWxTZXJ2aWNlID0gc29mdHdhcmVTeXN0ZW0gIkVtYWlsIFNlcnZpY2UiICJFeHRlcm5hbCBlbWFpbCBkZWxpdmVyeSBzZXJ2aWNlIiB7CiAgICAgICAgICAgIHRhZ3MgIkV4dGVybmFsIgogICAgICAgIH0KICAgICAgICAKICAgICAgICBlY29tbWVyY2VTeXN0ZW0gPSBzb2Z0d2FyZVN5c3RlbSAiRS1jb21tZXJjZSBQbGF0Zm9ybSIgIkNvcmUgZS1jb21tZXJjZSBmdW5jdGlvbmFsaXR5IgogICAgICAgIGZ1bGZpbG1lbnRTeXN0ZW0gPSBzb2Z0d2FyZVN5c3RlbSAiRnVsZmlsbWVudCBQbGF0Zm9ybSIgIk9yZGVyIGZ1bGZpbG1lbnQgc3lzdGVtIgogICAgICAgIG1hcmtldGluZ1N5c3RlbSA9IHNvZnR3YXJlU3lzdGVtICJNYXJrZXRpbmcgQXV0b21hdGlvbiIgIk1hbmFnZXMgY2FtcGFpZ25zIGFuZCBjdXN0b21lciBlbmdhZ2VtZW50IgogICAgICAgIGNybVN5c3RlbSA9IHNvZnR3YXJlU3lzdGVtICJDUk0gU3lzdGVtIiAiQ3VzdG9tZXIgcmVsYXRpb25zaGlwIG1hbmFnZW1lbnQgcGxhdGZvcm0iCiAgICAgICAgYW5hbHl0aWNzU3lzdGVtID0gc29mdHdhcmVTeXN0ZW0gIkFuYWx5dGljcyBQbGF0Zm9ybSIgIkFnZ3JlZ2F0ZXMgYW5kIGFuYWx5emVzIGJ1c2luZXNzIGRhdGEiCiAgICAgICAgcmVjb21tZW5kYXRpb25FbmdpbmUgPSBzb2Z0d2FyZVN5c3RlbSAiUmVjb21tZW5kYXRpb24gRW5naW5lIiAiUHJvdmlkZXMgcGVyc29uYWxpemVkIHByb2R1Y3QgcmVjb21tZW5kYXRpb25zIgogICAgICAgIHNlYXJjaFNlcnZpY2UgPSBzb2Z0d2FyZVN5c3RlbSAiU2VhcmNoIFNlcnZpY2UiICJFbmFibGVzIHByb2R1Y3Qgc2VhcmNoIGZ1bmN0aW9uYWxpdHkiCgogICAgICAgIGFkbWluID0gcGVyc29uICJBZG1pbmlzdHJhdG9yIiAiQWRtaW5pc3RyYXRpdmUgdXNlciBtYW5hZ2luZyB0aGUgcGxhdGZvcm0iCiAgICAgICAgCiAgICAgICAgdGF4U2VydmljZSA9IHNvZnR3YXJlU3lzdGVtICJUYXggQ2FsY3VsYXRpb24gU2VydmljZSIgIkhhbmRsZXMgdGF4IGNhbGN1bGF0aW9ucyBhbmQgY29tcGxpYW5jZSIgewogICAgICAgICAgICB0YWdzICJFeHRlcm5hbCIKICAgICAgICB9CiAgICAgICAgcGF5bWVudFByb3ZpZGVyID0gc29mdHdhcmVTeXN0ZW0gIlBheW1lbnQgUHJvdmlkZXIiICJFeHRlcm5hbCBwYXltZW50IHByb2Nlc3NpbmciIHsKICAgICAgICAgICAgdGFncyAiRXh0ZXJuYWwiCiAgICAgICAgfQogICAgICAgIAogICAgICAgICFlbGVtZW50IGVjb21tZXJjZVN5c3RlbSB7CiAgICAgICAgICAgIHdlYkFwcCA9IGNvbnRhaW5lciAiV2ViIEFwcGxpY2F0aW9uIiAiQ3VzdG9tZXItZmFjaW5nIHdlYiBpbnRlcmZhY2UiICJSZWFjdC9KYXZhU2NyaXB0IgogICAgICAgICAgICBhZG1pblBhbmVsID0gY29udGFpbmVyICJBZG1pbiBQYW5lbCIgIkFkbWluaXN0cmF0aXZlIGludGVyZmFjZSIgIlJlYWN0L0phdmFTY3JpcHQiCiAgICAgICAgICAgIGFwaUdhdGV3YXkgPSBjb250YWluZXIgIkFQSSBHYXRld2F5IiAiRW50cnkgcG9pbnQgZm9yIGFsbCBBUEkgcmVxdWVzdHMiICJTcHJpbmcgQ2xvdWQgR2F0ZXdheSIKICAgICAgICAgICAgCiAgICAgICAgICAgIHVzZXJTZXJ2aWNlID0gY29udGFpbmVyICJVc2VyIFNlcnZpY2UiICJNYW5hZ2VzIGN1c3RvbWVyIGFjY291bnRzIGFuZCBhdXRoZW50aWNhdGlvbiIgIlNwcmluZyBCb290L0phdmEiCiAgICAgICAgICAgIGNhdGFsb2dTZXJ2aWNlID0gY29udGFpbmVyICJDYXRhbG9nIFNlcnZpY2UiICJNYW5hZ2VzIHByb2R1Y3QgY2F0YWxvZyIgIk5vZGUuanMvRXhwcmVzcyIKICAgICAgICAgICAgb3JkZXJTZXJ2aWNlID0gY29udGFpbmVyICJPcmRlciBTZXJ2aWNlIiAiSGFuZGxlcyBvcmRlciBwcm9jZXNzaW5nIiAiU3ByaW5nIEJvb3QvSmF2YSIKICAgICAgICAgICAgcGF5bWVudFNlcnZpY2UgPSBjb250YWluZXIgIlBheW1lbnQgU2VydmljZSIgIlByb2Nlc3NlcyBwYXltZW50cyIgIlB5dGhvbi9GYXN0QVBJIgogICAgICAgICAgICAKICAgICAgICAgICAgdXNlckRhdGFiYXNlID0gY29udGFpbmVyICJVc2VyIERhdGFiYXNlIiAiU3RvcmVzIHVzZXIgYWNjb3VudCBpbmZvcm1hdGlvbiIgIlBvc3RncmVTUUwiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIGNhdGFsb2dEYXRhYmFzZSA9IGNvbnRhaW5lciAiQ2F0YWxvZyBEYXRhYmFzZSIgIlN0b3JlcyBwcm9kdWN0IGluZm9ybWF0aW9uIiAiTW9uZ29EQiIgewogICAgICAgICAgICAgICAgdGFncyAiRGF0YWJhc2UiCiAgICAgICAgICAgIH0KICAgICAgICAgICAgb3JkZXJEYXRhYmFzZSA9IGNvbnRhaW5lciAiT3JkZXIgRGF0YWJhc2UiICJTdG9yZXMgb3JkZXIgZGF0YSIgIlBvc3RncmVTUUwiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIAogICAgICAgICAgICBtZXNzYWdlUXVldWUgPSBjb250YWluZXIgIk1lc3NhZ2UgUXVldWUiICJIYW5kbGVzIGFzeW5jaHJvbm91cyBjb21tdW5pY2F0aW9uIiAiQXBhY2hlIEthZmthIgogICAgICAgIAogICAgICAgICAgICAjIERlZmluZSByZWxhdGlvbnNoaXBzIGF0IHRoZSBjb250YWluZXIgbGV2ZWwKICAgICAgICAgICAgY3VzdG9tZXIgLT4gd2ViQXBwICJVc2VzIgogICAgICAgICAgICBhZG1pbiAtPiBhZG1pblBhbmVsICJVc2VzIgogICAgICAgICAgICAKICAgICAgICAgICAgd2ViQXBwIC0+IGFwaUdhdGV3YXkgIk1ha2VzIEFQSSBjYWxscyB0byIKICAgICAgICAgICAgYWRtaW5QYW5lbCAtPiBhcGlHYXRld2F5ICJNYWtlcyBBUEkgY2FsbHMgdG8iCiAgICAgICAgICAgIAogICAgICAgICAgICBhcGlHYXRld2F5IC0+IHVzZXJTZXJ2aWNlICJSb3V0ZXMgcmVxdWVzdHMgdG8iCiAgICAgICAgICAgIGFwaUdhdGV3YXkgLT4gY2F0YWxvZ1NlcnZpY2UgIlJvdXRlcyByZXF1ZXN0cyB0byIKICAgICAgICAgICAgYXBpR2F0ZXdheSAtPiBvcmRlclNlcnZpY2UgIlJvdXRlcyByZXF1ZXN0cyB0byIKICAgICAgICAgICAgCiAgICAgICAgICAgIHVzZXJTZXJ2aWNlIC0+IHVzZXJEYXRhYmFzZSAiUmVhZHMgZnJvbSBhbmQgd3JpdGVzIHRvIgogICAgICAgICAgICBjYXRhbG9nU2VydmljZSAtPiBjYXRhbG9nRGF0YWJhc2UgIlJlYWRzIGZyb20gYW5kIHdyaXRlcyB0byIKICAgICAgICAgICAgb3JkZXJTZXJ2aWNlIC0+IG9yZGVyRGF0YWJhc2UgIlJlYWRzIGZyb20gYW5kIHdyaXRlcyB0byIKICAgICAgICAgICAgb3JkZXJTZXJ2aWNlIC0+IHBheW1lbnRTZXJ2aWNlICJJbml0aWF0ZXMgcGF5bWVudHMgdmlhIgogICAgICAgICAgICBvcmRlclNlcnZpY2UgLT4gdGF4U2VydmljZSAiQ2FsY3VsYXRlcyB0YXhlcyB2aWEiCiAgICAgICAgICAgIAogICAgICAgICAgICBwYXltZW50U2VydmljZSAtPiBwYXltZW50UHJvdmlkZXIgIlByb2Nlc3NlcyBwYXltZW50cyB2aWEiCiAgICAgICAgICAgIHBheW1lbnRTZXJ2aWNlIC0+IG1lc3NhZ2VRdWV1ZSAiUHVibGlzaGVzIGV2ZW50cyB0byIKICAgICAgICAgICAgb3JkZXJTZXJ2aWNlIC0+IG1lc3NhZ2VRdWV1ZSAiUHVibGlzaGVzIGV2ZW50cyB0byIKICAgICAgICAgICAgdXNlclNlcnZpY2UgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgZXZlbnRzIHRvIgogICAgICAgICAgICAKICAgICAgICAgICAgb3JkZXJTZXJ2aWNlIC0+IGVtYWlsU2VydmljZSAiU2VuZHMgb3JkZXIgY29uZmlybWF0aW9ucyB2aWEiCiAgICAgICAgfQogICAgICAgIHNoaXBwaW5nUHJvdmlkZXIgPSBzb2Z0d2FyZVN5c3RlbSAiU2hpcHBpbmcgUHJvdmlkZXIiICJFeHRlcm5hbCBzaGlwcGluZyBhbmQgbG9naXN0aWNzIGludGVncmF0aW9uIiB7CiAgICAgICAgICAgIHRhZ3MgIkV4dGVybmFsIgogICAgICAgIH0KICAgICAgICAKICAgICAgICAhZWxlbWVudCBmdWxmaWxtZW50U3lzdGVtIHsKICAgICAgICAgICAgb3JkZXJNYW5hZ2VtZW50ID0gY29udGFpbmVyICJPcmRlciBNYW5hZ2VtZW50IFNlcnZpY2UiICJIYW5kbGVzIG9yZGVyIGludGFrZSwgdmFsaWRhdGlvbiwgYW5kIHRyYWNraW5nIiAiU3ByaW5nIEJvb3QvSmF2YSIKICAgICAgICAgICAgaW52ZW50b3J5U2VydmljZSA9IGNvbnRhaW5lciAiSW52ZW50b3J5IFNlcnZpY2UiICJNYW5hZ2VzIHN0b2NrIGxldmVscyBhbmQgcmVzZXJ2YXRpb25zIiAiTm9kZS5qcy9FeHByZXNzIgogICAgICAgICAgICB3YXJlaG91c2VTZXJ2aWNlID0gY29udGFpbmVyICJXYXJlaG91c2UgU2VydmljZSIgIkNvb3JkaW5hdGVzIHBpY2tpbmcsIHBhY2tpbmcsIGFuZCBzaGlwcGluZyIgIlB5dGhvbi9GYXN0QVBJIgogICAgICAgICAgICBzaGlwcGluZ1NlcnZpY2UgPSBjb250YWluZXIgIlNoaXBwaW5nIFNlcnZpY2UiICJJbnRlZ3JhdGVzIHdpdGggY2FycmllcnMgYW5kIG1hbmFnZXMgc2hpcG1lbnRzIiAiR28iCiAgICAgICAgICAgIG5vdGlmaWNhdGlvblNlcnZpY2UgPSBjb250YWluZXIgIk5vdGlmaWNhdGlvbiBTZXJ2aWNlIiAiU2VuZHMgb3JkZXIgYW5kIHNoaXBwaW5nIG5vdGlmaWNhdGlvbnMiICJOb2RlLmpzIgogICAgICAgICAgICAKICAgICAgICAgICAgb3JkZXJEYXRhYmFzZSA9IGNvbnRhaW5lciAiT3JkZXIgRGF0YWJhc2UiICJTdG9yZXMgb3JkZXIgZGF0YSIgIlBvc3RncmVTUUwiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIGludmVudG9yeURhdGFiYXNlID0gY29udGFpbmVyICJJbnZlbnRvcnkgRGF0YWJhc2UiICJTdG9yZXMgaW52ZW50b3J5IGRhdGEiICJNb25nb0RCIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgfQogICAgICAgICAgICB3YXJlaG91c2VEYXRhYmFzZSA9IGNvbnRhaW5lciAiV2FyZWhvdXNlIERhdGFiYXNlIiAiU3RvcmVzIHdhcmVob3VzZSBvcGVyYXRpb25zIGRhdGEiICJNeVNRTCIgewogICAgICAgICAgICAgICAgdGFncyAiRGF0YWJhc2UiCiAgICAgICAgICAgIH0KICAgICAgICAgICAgCiAgICAgICAgICAgIG1lc3NhZ2VRdWV1ZSA9IGNvbnRhaW5lciAiTWVzc2FnZSBRdWV1ZSIgIkhhbmRsZXMgYXN5bmNocm9ub3VzIGV2ZW50cyIgIlJhYmJpdE1RIgogICAgICAgICAgICAKICAgICAgICAgICAgIyBSZWxhdGlvbnNoaXBzCiAgICAgICAgICAgICNzYWxlc0NoYW5uZWwgLT4gb3JkZXJNYW5hZ2VtZW50ICJQbGFjZXMgb3JkZXJzIHZpYSIKICAgICAgICAgICAgb3JkZXJNYW5hZ2VtZW50IC0+IG9yZGVyRGF0YWJhc2UgIlJlYWRzIGZyb20gYW5kIHdyaXRlcyB0byIKICAgICAgICAgICAgb3JkZXJNYW5hZ2VtZW50IC0+IGludmVudG9yeVNlcnZpY2UgIkNoZWNrcyBhbmQgcmVzZXJ2ZXMgc3RvY2siCiAgICAgICAgICAgIG9yZGVyTWFuYWdlbWVudCAtPiBub3RpZmljYXRpb25TZXJ2aWNlICJUcmlnZ2VycyBvcmRlciBjb25maXJtYXRpb24iCiAgICAgICAgICAgIG9yZGVyTWFuYWdlbWVudCAtPiBtZXNzYWdlUXVldWUgIlB1Ymxpc2hlcyBvcmRlciBldmVudHMiCiAgICAgICAgICAgIAogICAgICAgICAgICBpbnZlbnRvcnlTZXJ2aWNlIC0+IGludmVudG9yeURhdGFiYXNlICJSZWFkcyBmcm9tIGFuZCB3cml0ZXMgdG8iCiAgICAgICAgICAgIGludmVudG9yeVNlcnZpY2UgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgaW52ZW50b3J5IGV2ZW50cyIKICAgICAgICAgICAgCiAgICAgICAgICAgIHdhcmVob3VzZVNlcnZpY2UgLT4gd2FyZWhvdXNlRGF0YWJhc2UgIlJlYWRzIGZyb20gYW5kIHdyaXRlcyB0byIKICAgICAgICAgICAgd2FyZWhvdXNlU2VydmljZSAtPiBpbnZlbnRvcnlTZXJ2aWNlICJVcGRhdGVzIGludmVudG9yeSBhZnRlciBmdWxmaWxtZW50IgogICAgICAgICAgICB3YXJlaG91c2VTZXJ2aWNlIC0+IHNoaXBwaW5nU2VydmljZSAiUmVxdWVzdHMgc2hpcG1lbnQiCiAgICAgICAgICAgIHdhcmVob3VzZVNlcnZpY2UgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgZnVsZmlsbWVudCBldmVudHMiCiAgICAgICAgICAgIAogICAgICAgICAgICBzaGlwcGluZ1NlcnZpY2UgLT4gc2hpcHBpbmdQcm92aWRlciAiSW50ZWdyYXRlcyB3aXRoIGNhcnJpZXJzIHZpYSIKICAgICAgICAgICAgc2hpcHBpbmdTZXJ2aWNlIC0+IG1lc3NhZ2VRdWV1ZSAiUHVibGlzaGVzIHNoaXBwaW5nIGV2ZW50cyIKICAgICAgICAgICAgc2hpcHBpbmdTZXJ2aWNlIC0+IG5vdGlmaWNhdGlvblNlcnZpY2UgIlRyaWdnZXJzIHNoaXBwaW5nIG5vdGlmaWNhdGlvbnMiCiAgICAgICAgICAgIAogICAgICAgICAgICBub3RpZmljYXRpb25TZXJ2aWNlIC0+IG1lc3NhZ2VRdWV1ZSAiQ29uc3VtZXMgZXZlbnRzIgogICAgICAgICAgICBub3RpZmljYXRpb25TZXJ2aWNlIC0+IGVtYWlsU2VydmljZSAiU2VuZHMgZW1haWxzIgogICAgICAgIH0KICAgICAgICAjIERlZmluZSBwZW9wbGUgYW5kIGV4dGVybmFsIHN5c3RlbXMKICAgICAgICBtYXJrZXRlciA9IHBlcnNvbiAiTWFya2V0ZXIiICJNYXJrZXRpbmcgdGVhbSBtZW1iZXIgbWFuYWdpbmcgY2FtcGFpZ25zIgogICAgICAgIGFuYWx5c3QgPSBwZXJzb24gIkFuYWx5c3QiICJBbmFseXplcyBtYXJrZXRpbmcgZGF0YSBhbmQgcGVyZm9ybWFuY2UiCiAgICAgICAgYW5hbHl0aWNzUHJvdmlkZXIgPSBzb2Z0d2FyZVN5c3RlbSAiQW5hbHl0aWNzIFByb3ZpZGVyIiAiRXh0ZXJuYWwgYW5hbHl0aWNzIGFuZCB0cmFja2luZyIgewogICAgICAgICAgICB0YWdzICJFeHRlcm5hbCIKICAgICAgICB9CiAgICAgICAgCiAgICAgICAgIWVsZW1lbnQgbWFya2V0aW5nU3lzdGVtIHsKICAgICAgICAgICAgIyBDb250YWluZXIgbGV2ZWwgLSBtaWNyb3NlcnZpY2VzCiAgICAgICAgICAgIGNhbXBhaWduTWFuYWdlciA9IGNvbnRhaW5lciAiQ2FtcGFpZ24gTWFuYWdlciIgIk1hbmFnZXMgbWFya2V0aW5nIGNhbXBhaWducyBhbmQgcHJvbW90aW9ucyIgIlNwcmluZyBCb290L0phdmEiCiAgICAgICAgICAgIHNlZ21lbnRhdGlvblNlcnZpY2UgPSBjb250YWluZXIgIlNlZ21lbnRhdGlvbiBTZXJ2aWNlIiAiU2VnbWVudHMgY3VzdG9tZXJzIGZvciB0YXJnZXRlZCBtYXJrZXRpbmciICJQeXRob24vRmFzdEFQSSIKICAgICAgICAgICAgZW1haWxDYW1wYWlnblNlcnZpY2UgPSBjb250YWluZXIgIkVtYWlsIENhbXBhaWduIFNlcnZpY2UiICJTY2hlZHVsZXMgYW5kIHNlbmRzIG1hcmtldGluZyBlbWFpbHMiICJOb2RlLmpzL0V4cHJlc3MiCiAgICAgICAgICAgIGFuYWx5dGljc1NlcnZpY2UgPSBjb250YWluZXIgIkFuYWx5dGljcyBTZXJ2aWNlIiAiQ29sbGVjdHMgYW5kIGFuYWx5emVzIG1hcmtldGluZyBkYXRhIiAiUHl0aG9uL0Zhc3RBUEkiCiAgICAgICAgICAgIGFwaUdhdGV3YXkgPSBjb250YWluZXIgIkFQSSBHYXRld2F5IiAiRW50cnkgcG9pbnQgZm9yIGFsbCBBUEkgcmVxdWVzdHMiICJTcHJpbmcgQ2xvdWQgR2F0ZXdheSIKICAgICAgICAKICAgICAgICAgICAgY2FtcGFpZ25EYXRhYmFzZSA9IGNvbnRhaW5lciAiQ2FtcGFpZ24gRGF0YWJhc2UiICJTdG9yZXMgY2FtcGFpZ24gYW5kIHByb21vdGlvbiBkYXRhIiAiUG9zdGdyZVNRTCIgewogICAgICAgICAgICAgICAgdGFncyAiRGF0YWJhc2UiCiAgICAgICAgICAgIH0KICAgICAgICAgICAgc2VnbWVudGF0aW9uRGF0YWJhc2UgPSBjb250YWluZXIgIlNlZ21lbnRhdGlvbiBEYXRhYmFzZSIgIlN0b3JlcyBjdXN0b21lciBzZWdtZW50cyIgIk1vbmdvREIiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIGFuYWx5dGljc0RhdGFiYXNlID0gY29udGFpbmVyICJBbmFseXRpY3MgRGF0YWJhc2UiICJTdG9yZXMgbWFya2V0aW5nIGFuYWx5dGljcyBkYXRhIiAiUG9zdGdyZVNRTCIgewogICAgICAgICAgICAgICAgdGFncyAiRGF0YWJhc2UiCiAgICAgICAgICAgIH0KICAgICAgICAKICAgICAgICAgICAgbWVzc2FnZVF1ZXVlID0gY29udGFpbmVyICJNZXNzYWdlIFF1ZXVlIiAiSGFuZGxlcyBhc3luY2hyb25vdXMgY29tbXVuaWNhdGlvbiIgIkFwYWNoZSBLYWZrYSIKICAgICAgICAKICAgICAgICAgICAgIyBEZWZpbmUgcmVsYXRpb25zaGlwcyBhdCB0aGUgc3lzdGVtIGxldmVsCiAgICAgICAgICAgIG1hcmtldGVyIC0+IG1hcmtldGluZ1N5c3RlbSAiTWFuYWdlcyBjYW1wYWlnbnMgd2l0aCIKICAgICAgICAgICAgYW5hbHlzdCAtPiBtYXJrZXRpbmdTeXN0ZW0gIkFuYWx5emVzIGRhdGEgd2l0aCIKICAgICAgICAgICAgbWFya2V0aW5nU3lzdGVtIC0+IGVjb21tZXJjZVN5c3RlbSAiU3luY3MgY3VzdG9tZXIgYW5kIG9yZGVyIGRhdGEgd2l0aCIKICAgICAgICAgICAgbWFya2V0aW5nU3lzdGVtIC0+IGVtYWlsU2VydmljZSAiU2VuZHMgbWFya2V0aW5nIGVtYWlscyB2aWEiCiAgICAgICAgICAgIG1hcmtldGluZ1N5c3RlbSAtPiBhbmFseXRpY3NQcm92aWRlciAiU2VuZHMgdHJhY2tpbmcgZGF0YSB0byIKICAgICAgICAKICAgICAgICAgICAgIyBEZWZpbmUgcmVsYXRpb25zaGlwcyBhdCB0aGUgY29udGFpbmVyIGxldmVsCiAgICAgICAgICAgIG1hcmtldGVyIC0+IGNhbXBhaWduTWFuYWdlciAiVXNlcyIKICAgICAgICAgICAgYW5hbHlzdCAtPiBhbmFseXRpY3NTZXJ2aWNlICJVc2VzIgogICAgICAgIAogICAgICAgICAgICBjYW1wYWlnbk1hbmFnZXIgLT4gYXBpR2F0ZXdheSAiTWFrZXMgQVBJIGNhbGxzIHRvIgogICAgICAgICAgICBzZWdtZW50YXRpb25TZXJ2aWNlIC0+IGFwaUdhdGV3YXkgIk1ha2VzIEFQSSBjYWxscyB0byIKICAgICAgICAgICAgZW1haWxDYW1wYWlnblNlcnZpY2UgLT4gYXBpR2F0ZXdheSAiTWFrZXMgQVBJIGNhbGxzIHRvIgogICAgICAgICAgICBhbmFseXRpY3NTZXJ2aWNlIC0+IGFwaUdhdGV3YXkgIk1ha2VzIEFQSSBjYWxscyB0byIKICAgICAgICAKICAgICAgICAgICAgYXBpR2F0ZXdheSAtPiBjYW1wYWlnbk1hbmFnZXIgIlJvdXRlcyByZXF1ZXN0cyB0byIKICAgICAgICAgICAgYXBpR2F0ZXdheSAtPiBzZWdtZW50YXRpb25TZXJ2aWNlICJSb3V0ZXMgcmVxdWVzdHMgdG8iCiAgICAgICAgICAgIGFwaUdhdGV3YXkgLT4gZW1haWxDYW1wYWlnblNlcnZpY2UgIlJvdXRlcyByZXF1ZXN0cyB0byIKICAgICAgICAgICAgYXBpR2F0ZXdheSAtPiBhbmFseXRpY3NTZXJ2aWNlICJSb3V0ZXMgcmVxdWVzdHMgdG8iCiAgICAgICAgCiAgICAgICAgICAgIGNhbXBhaWduTWFuYWdlciAtPiBjYW1wYWlnbkRhdGFiYXNlICJSZWFkcyBmcm9tIGFuZCB3cml0ZXMgdG8iCiAgICAgICAgICAgIHNlZ21lbnRhdGlvblNlcnZpY2UgLT4gc2VnbWVudGF0aW9uRGF0YWJhc2UgIlJlYWRzIGZyb20gYW5kIHdyaXRlcyB0byIKICAgICAgICAgICAgYW5hbHl0aWNzU2VydmljZSAtPiBhbmFseXRpY3NEYXRhYmFzZSAiUmVhZHMgZnJvbSBhbmQgd3JpdGVzIHRvIgogICAgICAgIAogICAgICAgICAgICBjYW1wYWlnbk1hbmFnZXIgLT4gc2VnbWVudGF0aW9uU2VydmljZSAiR2V0cyBjdXN0b21lciBzZWdtZW50cyBmcm9tIgogICAgICAgICAgICBjYW1wYWlnbk1hbmFnZXIgLT4gZW1haWxDYW1wYWlnblNlcnZpY2UgIlNjaGVkdWxlcyBlbWFpbCBjYW1wYWlnbnMgdmlhIgogICAgICAgICAgICBlbWFpbENhbXBhaWduU2VydmljZSAtPiBlbWFpbFNlcnZpY2UgIlNlbmRzIGVtYWlscyB2aWEiCiAgICAgICAgICAgIGFuYWx5dGljc1NlcnZpY2UgLT4gYW5hbHl0aWNzUHJvdmlkZXIgIlNlbmRzIHRyYWNraW5nIGRhdGEgdG8iCiAgICAgICAgICAgIGFuYWx5dGljc1NlcnZpY2UgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgZXZlbnRzIHRvIgogICAgICAgICAgICBjYW1wYWlnbk1hbmFnZXIgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgZXZlbnRzIHRvIgogICAgICAgICAgICBzZWdtZW50YXRpb25TZXJ2aWNlIC0+IG1lc3NhZ2VRdWV1ZSAiUHVibGlzaGVzIGV2ZW50cyB0byIKICAgICAgICAKICAgICAgICAgICAgbWFya2V0aW5nU3lzdGVtIC0+IGVjb21tZXJjZVN5c3RlbSAiSW1wb3J0cyBjdXN0b21lciBhbmQgb3JkZXIgZGF0YSBmcm9tIgogICAgICAgIH0KICAgICAgICAjIERlZmluZSBzdXBwb3J0IHN5c3RlbSBwZW9wbGUKICAgICAgICBzdXBwb3J0QWdlbnQgPSBwZXJzb24gIlN1cHBvcnQgQWdlbnQiICJDdXN0b21lciBzZXJ2aWNlIHJlcHJlc2VudGF0aXZlIGhhbmRsaW5nIHN1cHBvcnQgdGlja2V0cyIKICAgICAgICBzdXBwb3J0TWFuYWdlciA9IHBlcnNvbiAiU3VwcG9ydCBNYW5hZ2VyIiAiTWFuYWdlcyBzdXBwb3J0IG9wZXJhdGlvbnMgYW5kIHRlYW0gcGVyZm9ybWFuY2UiCiAgICAgICAgCiAgICAgICAgIyBSZWRlZmluZSBzdXBwb3J0U3lzdGVtIGFzIHRoZSBpbnRlcm5hbCBzeXN0ZW0gKG92ZXJyaWRlcyB0aGUgZXh0ZXJuYWwgc3lzdGVtIGRlZmluaXRpb24pCiAgICAgICAgc3VwcG9ydFN5c3RlbSA9IHNvZnR3YXJlU3lzdGVtICJDdXN0b21lciBTdXBwb3J0IFBsYXRmb3JtIiAiSGFuZGxlcyBjdXN0b21lciBpbnF1aXJpZXMgYW5kIHN1cHBvcnQgb3BlcmF0aW9ucyIgewogICAgICAgICAgICAjIENvbnRhaW5lciBsZXZlbCAtIG1pY3Jvc2VydmljZXMKICAgICAgICAgICAgc3VwcG9ydFBvcnRhbCA9IGNvbnRhaW5lciAiU3VwcG9ydCBQb3J0YWwiICJDdXN0b21lci1mYWNpbmcgc3VwcG9ydCBpbnRlcmZhY2UiICJSZWFjdC9KYXZhU2NyaXB0IgogICAgICAgICAgICBhZ2VudERhc2hib2FyZCA9IGNvbnRhaW5lciAiQWdlbnQgRGFzaGJvYXJkIiAiU3VwcG9ydCBhZ2VudCBpbnRlcmZhY2UgZm9yIG1hbmFnaW5nIHRpY2tldHMiICJSZWFjdC9KYXZhU2NyaXB0IgogICAgICAgICAgICBhcGlHYXRld2F5ID0gY29udGFpbmVyICJBUEkgR2F0ZXdheSIgIkVudHJ5IHBvaW50IGZvciBhbGwgQVBJIHJlcXVlc3RzIiAiU3ByaW5nIENsb3VkIEdhdGV3YXkiCiAgICAgICAgICAgIAogICAgICAgICAgICB0aWNrZXRTZXJ2aWNlID0gY29udGFpbmVyICJUaWNrZXQgU2VydmljZSIgIk1hbmFnZXMgc3VwcG9ydCB0aWNrZXRzIGFuZCB3b3JrZmxvdyIgIlNwcmluZyBCb290L0phdmEiCiAgICAgICAgICAgIGtub3dsZWRnZUJhc2VTZXJ2aWNlID0gY29udGFpbmVyICJLbm93bGVkZ2UgQmFzZSBTZXJ2aWNlIiAiTWFuYWdlcyBoZWxwIGFydGljbGVzIGFuZCBGQVFzIiAiTm9kZS5qcy9FeHByZXNzIgogICAgICAgICAgICBjaGF0U2VydmljZSA9IGNvbnRhaW5lciAiTGl2ZSBDaGF0IFNlcnZpY2UiICJIYW5kbGVzIHJlYWwtdGltZSBjdXN0b21lciBjaGF0IiAiTm9kZS5qcy9Tb2NrZXQuaW8iCiAgICAgICAgICAgIG5vdGlmaWNhdGlvblNlcnZpY2UgPSBjb250YWluZXIgIk5vdGlmaWNhdGlvbiBTZXJ2aWNlIiAiU2VuZHMgc3VwcG9ydC1yZWxhdGVkIG5vdGlmaWNhdGlvbnMiICJQeXRob24vRmFzdEFQSSIKICAgICAgICAgICAgcmVwb3J0aW5nU2VydmljZSA9IGNvbnRhaW5lciAiUmVwb3J0aW5nIFNlcnZpY2UiICJHZW5lcmF0ZXMgc3VwcG9ydCBhbmFseXRpY3MgYW5kIHJlcG9ydHMiICJQeXRob24vRmFzdEFQSSIKICAgICAgICAgICAgCiAgICAgICAgICAgIHRpY2tldERhdGFiYXNlID0gY29udGFpbmVyICJUaWNrZXQgRGF0YWJhc2UiICJTdG9yZXMgc3VwcG9ydCB0aWNrZXRzIGFuZCBpbnRlcmFjdGlvbnMiICJQb3N0Z3JlU1FMIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgfQogICAgICAgICAgICBrbm93bGVkZ2VCYXNlRGF0YWJhc2UgPSBjb250YWluZXIgIktub3dsZWRnZSBCYXNlIERhdGFiYXNlIiAiU3RvcmVzIGhlbHAgYXJ0aWNsZXMgYW5kIGRvY3VtZW50YXRpb24iICJNb25nb0RCIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgfQogICAgICAgICAgICBjaGF0RGF0YWJhc2UgPSBjb250YWluZXIgIkNoYXQgRGF0YWJhc2UiICJTdG9yZXMgY2hhdCBjb252ZXJzYXRpb25zIGFuZCBoaXN0b3J5IiAiUmVkaXMiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIAogICAgICAgICAgICBtZXNzYWdlUXVldWUgPSBjb250YWluZXIgIk1lc3NhZ2UgUXVldWUiICJIYW5kbGVzIGFzeW5jaHJvbm91cyBjb21tdW5pY2F0aW9uIiAiQXBhY2hlIEthZmthIgogICAgICAgIAogICAgICAgICAgICAjIERlZmluZSByZWxhdGlvbnNoaXBzIGF0IHRoZSBjb250YWluZXIgbGV2ZWwKICAgICAgICAgICAgY3VzdG9tZXIgLT4gc3VwcG9ydFBvcnRhbCAiVXNlcyBmb3Igc3VwcG9ydCByZXF1ZXN0cyIKICAgICAgICAgICAgc3VwcG9ydEFnZW50IC0+IGFnZW50RGFzaGJvYXJkICJVc2VzIHRvIG1hbmFnZSBzdXBwb3J0IHRpY2tldHMiCiAgICAgICAgICAgIHN1cHBvcnRNYW5hZ2VyIC0+IHJlcG9ydGluZ1NlcnZpY2UgIlVzZXMgdG8gdmlldyBzdXBwb3J0IGFuYWx5dGljcyIKICAgICAgICAgICAgCiAgICAgICAgICAgIHN1cHBvcnRQb3J0YWwgLT4gYXBpR2F0ZXdheSAiTWFrZXMgQVBJIGNhbGxzIHRvIgogICAgICAgICAgICBhZ2VudERhc2hib2FyZCAtPiBhcGlHYXRld2F5ICJNYWtlcyBBUEkgY2FsbHMgdG8iCiAgICAgICAgICAgIAogICAgICAgICAgICBhcGlHYXRld2F5IC0+IHRpY2tldFNlcnZpY2UgIlJvdXRlcyByZXF1ZXN0cyB0byIKICAgICAgICAgICAgYXBpR2F0ZXdheSAtPiBrbm93bGVkZ2VCYXNlU2VydmljZSAiUm91dGVzIHJlcXVlc3RzIHRvIgogICAgICAgICAgICBhcGlHYXRld2F5IC0+IGNoYXRTZXJ2aWNlICJSb3V0ZXMgcmVxdWVzdHMgdG8iCiAgICAgICAgICAgIGFwaUdhdGV3YXkgLT4gcmVwb3J0aW5nU2VydmljZSAiUm91dGVzIHJlcXVlc3RzIHRvIgogICAgICAgICAgICAKICAgICAgICAgICAgdGlja2V0U2VydmljZSAtPiB0aWNrZXREYXRhYmFzZSAiUmVhZHMgZnJvbSBhbmQgd3JpdGVzIHRvIgogICAgICAgICAgICBrbm93bGVkZ2VCYXNlU2VydmljZSAtPiBrbm93bGVkZ2VCYXNlRGF0YWJhc2UgIlJlYWRzIGZyb20gYW5kIHdyaXRlcyB0byIKICAgICAgICAgICAgY2hhdFNlcnZpY2UgLT4gY2hhdERhdGFiYXNlICJSZWFkcyBmcm9tIGFuZCB3cml0ZXMgdG8iCiAgICAgICAgICAgIHJlcG9ydGluZ1NlcnZpY2UgLT4gdGlja2V0RGF0YWJhc2UgIlJlYWRzIGFuYWx5dGljcyBkYXRhIGZyb20iCiAgICAgICAgICAgIAogICAgICAgICAgICB0aWNrZXRTZXJ2aWNlIC0+IG5vdGlmaWNhdGlvblNlcnZpY2UgIlRyaWdnZXJzIHRpY2tldCBub3RpZmljYXRpb25zIHZpYSIKICAgICAgICAgICAgY2hhdFNlcnZpY2UgLT4gbm90aWZpY2F0aW9uU2VydmljZSAiVHJpZ2dlcnMgY2hhdCBub3RpZmljYXRpb25zIHZpYSIKICAgICAgICAgICAgbm90aWZpY2F0aW9uU2VydmljZSAtPiBlbWFpbFNlcnZpY2UgIlNlbmRzIGVtYWlscyB2aWEiCiAgICAgICAgICAgIG5vdGlmaWNhdGlvblNlcnZpY2UgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgbm90aWZpY2F0aW9uIGV2ZW50cyB0byIKICAgICAgICAgICAgCiAgICAgICAgICAgIHRpY2tldFNlcnZpY2UgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgdGlja2V0IGV2ZW50cyB0byIKICAgICAgICAgICAgY2hhdFNlcnZpY2UgLT4gbWVzc2FnZVF1ZXVlICJQdWJsaXNoZXMgY2hhdCBldmVudHMgdG8iCiAgICAgICAgICAgIAogICAgICAgICAgICAjIEludGVncmF0aW9uIHdpdGggb3RoZXIgc3lzdGVtcwogICAgICAgICAgICB0aWNrZXRTZXJ2aWNlIC0+IGVjb21tZXJjZVN5c3RlbSAiUmV0cmlldmVzIGN1c3RvbWVyIGFuZCBvcmRlciBkYXRhIGZyb20iCiAgICAgICAgICAgIHRpY2tldFNlcnZpY2UgLT4gY3JtU3lzdGVtICJVcGRhdGVzIGN1c3RvbWVyIHN1cHBvcnQgaGlzdG9yeSBpbiIKICAgICAgICAgICAgcmVwb3J0aW5nU2VydmljZSAtPiBhbmFseXRpY3NTeXN0ZW0gIlNlbmRzIHN1cHBvcnQgbWV0cmljcyB0byIKICAgICAgICB9CiAgICAgICAgIyBEZWZpbmUgc2VhcmNoIHNlcnZpY2UgcGVvcGxlCiAgICAgICAgc2VhcmNoQW5hbHlzdCA9IHBlcnNvbiAiU2VhcmNoIEFuYWx5c3QiICJBbmFseXplcyBzZWFyY2ggcGF0dGVybnMgYW5kIG9wdGltaXplcyBzZWFyY2ggZXhwZXJpZW5jZSIKICAgICAgICBtZXJjaGFuZGlzZXIgPSBwZXJzb24gIk1lcmNoYW5kaXNlciIgIk1hbmFnZXMgcHJvZHVjdCB2aXNpYmlsaXR5IGFuZCBzZWFyY2ggcmFua2luZ3MiCiAgICAgICAgCiAgICAgICAgIWVsZW1lbnQgc2VhcmNoU2VydmljZSB7CiAgICAgICAgICAgICMgQ29udGFpbmVyIGxldmVsIC0gbWljcm9zZXJ2aWNlcwogICAgICAgICAgICBzZWFyY2hBUEkgPSBjb250YWluZXIgIlNlYXJjaCBBUEkiICJQcmltYXJ5IHNlYXJjaCBpbnRlcmZhY2UgYW5kIG9yY2hlc3RyYXRpb24iICJTcHJpbmcgQm9vdC9KYXZhIgogICAgICAgICAgICBpbmRleGluZ1NlcnZpY2UgPSBjb250YWluZXIgIkluZGV4aW5nIFNlcnZpY2UiICJQcm9jZXNzZXMgYW5kIGluZGV4ZXMgcHJvZHVjdCBkYXRhIiAiUHl0aG9uL0Zhc3RBUEkiCiAgICAgICAgICAgIHF1ZXJ5UHJvY2Vzc29yID0gY29udGFpbmVyICJRdWVyeSBQcm9jZXNzb3IiICJBbmFseXplcyBhbmQgZW5oYW5jZXMgc2VhcmNoIHF1ZXJpZXMiICJQeXRob24vRmFzdEFQSSIKICAgICAgICAgICAgYXV0b2NvbXBsZXRlU2VydmljZSA9IGNvbnRhaW5lciAiQXV0b2NvbXBsZXRlIFNlcnZpY2UiICJQcm92aWRlcyBzZWFyY2ggc3VnZ2VzdGlvbnMgYW5kIGF1dG9jb21wbGV0aW9uIiAiTm9kZS5qcy9FeHByZXNzIgogICAgICAgICAgICBzZWFyY2hBbmFseXRpY3MgPSBjb250YWluZXIgIlNlYXJjaCBBbmFseXRpY3MiICJUcmFja3Mgc2VhcmNoIGJlaGF2aW9yIGFuZCBwZXJmb3JtYW5jZSIgIlB5dGhvbi9GYXN0QVBJIgogICAgICAgICAgICBmYWNldFNlcnZpY2UgPSBjb250YWluZXIgIkZhY2V0IFNlcnZpY2UiICJNYW5hZ2VzIHNlYXJjaCBmaWx0ZXJzIGFuZCBmYWNldGVkIG5hdmlnYXRpb24iICJTcHJpbmcgQm9vdC9KYXZhIgogICAgICAgICAgICAKICAgICAgICAgICAgIyBTZWFyY2ggaW5mcmFzdHJ1Y3R1cmUKICAgICAgICAgICAgc2VhcmNoSW5kZXggPSBjb250YWluZXIgIlNlYXJjaCBJbmRleCIgIkVsYXN0aWNzZWFyY2ggY2x1c3RlciBmb3IgcHJvZHVjdCBzZWFyY2giICJFbGFzdGljc2VhcmNoIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgfQogICAgICAgICAgICBzZWFyY2hDYWNoZSA9IGNvbnRhaW5lciAiU2VhcmNoIENhY2hlIiAiQ2FjaGVzIGZyZXF1ZW50IHNlYXJjaGVzIGFuZCByZXN1bHRzIiAiUmVkaXMiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIGFuYWx5dGljc0RhdGFiYXNlID0gY29udGFpbmVyICJBbmFseXRpY3MgRGF0YWJhc2UiICJTdG9yZXMgc2VhcmNoIGFuYWx5dGljcyBhbmQgbWV0cmljcyIgIlBvc3RncmVTUUwiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIAogICAgICAgICAgICBtZXNzYWdlUXVldWUgPSBjb250YWluZXIgIk1lc3NhZ2UgUXVldWUiICJIYW5kbGVzIGFzeW5jaHJvbm91cyBkYXRhIHVwZGF0ZXMiICJBcGFjaGUgS2Fma2EiCiAgICAgICAgCiAgICAgICAgICAgICMgRGVmaW5lIHJlbGF0aW9uc2hpcHMgYXQgdGhlIGNvbnRhaW5lciBsZXZlbAogICAgICAgICAgICBjdXN0b21lciAtPiBzZWFyY2hBUEkgIlNlYXJjaGVzIGZvciBwcm9kdWN0cyB2aWEiCiAgICAgICAgICAgIG1lcmNoYW5kaXNlciAtPiBzZWFyY2hBbmFseXRpY3MgIkFuYWx5emVzIHNlYXJjaCBwZXJmb3JtYW5jZSB3aXRoIgogICAgICAgICAgICBzZWFyY2hBbmFseXN0IC0+IHNlYXJjaEFuYWx5dGljcyAiT3B0aW1pemVzIHNlYXJjaCBleHBlcmllbmNlIHVzaW5nIgogICAgICAgICAgICAKICAgICAgICAgICAgIyBJbnRlcm5hbCBzZXJ2aWNlIHJlbGF0aW9uc2hpcHMKICAgICAgICAgICAgc2VhcmNoQVBJIC0+IHF1ZXJ5UHJvY2Vzc29yICJQcm9jZXNzZXMgcXVlcmllcyB3aXRoIgogICAgICAgICAgICBzZWFyY2hBUEkgLT4gc2VhcmNoSW5kZXggIlF1ZXJpZXMgcHJvZHVjdHMgZnJvbSIKICAgICAgICAgICAgc2VhcmNoQVBJIC0+IHNlYXJjaENhY2hlICJDaGVja3MgY2FjaGVkIHJlc3VsdHMgaW4iCiAgICAgICAgICAgIHNlYXJjaEFQSSAtPiBmYWNldFNlcnZpY2UgIkdldHMgZmlsdGVycyBhbmQgZmFjZXRzIGZyb20iCiAgICAgICAgICAgIAogICAgICAgICAgICBxdWVyeVByb2Nlc3NvciAtPiBhdXRvY29tcGxldGVTZXJ2aWNlICJHZXRzIHN1Z2dlc3Rpb25zIGZyb20iCiAgICAgICAgICAgIHF1ZXJ5UHJvY2Vzc29yIC0+IHNlYXJjaEluZGV4ICJQZXJmb3JtcyBlbmhhbmNlZCBxdWVyaWVzIG9uIgogICAgICAgICAgICAKICAgICAgICAgICAgaW5kZXhpbmdTZXJ2aWNlIC0+IHNlYXJjaEluZGV4ICJNYWludGFpbnMgcHJvZHVjdCBpbmRleCBpbiIKICAgICAgICAgICAgaW5kZXhpbmdTZXJ2aWNlIC0+IG1lc3NhZ2VRdWV1ZSAiQ29uc3VtZXMgcHJvZHVjdCB1cGRhdGVzIGZyb20iCiAgICAgICAgICAgIAogICAgICAgICAgICBzZWFyY2hBUEkgLT4gc2VhcmNoQW5hbHl0aWNzICJMb2dzIHNlYXJjaCBldmVudHMgdG8iCiAgICAgICAgICAgIHNlYXJjaEFuYWx5dGljcyAtPiBhbmFseXRpY3NEYXRhYmFzZSAiU3RvcmVzIG1ldHJpY3MgaW4iCiAgICAgICAgICAgIAogICAgICAgICAgICBmYWNldFNlcnZpY2UgLT4gc2VhcmNoSW5kZXggIlJldHJpZXZlcyBmYWNldCBkYXRhIGZyb20iCiAgICAgICAgICAgIGF1dG9jb21wbGV0ZVNlcnZpY2UgLT4gc2VhcmNoQ2FjaGUgIkNhY2hlcyBzdWdnZXN0aW9ucyBpbiIKICAgICAgICAgICAgCiAgICAgICAgICAgICMgSW50ZWdyYXRpb24gd2l0aCBvdGhlciBzeXN0ZW1zCiAgICAgICAgICAgIGluZGV4aW5nU2VydmljZSAtPiBlY29tbWVyY2VTeXN0ZW0gIlN5bmNzIHByb2R1Y3QgY2F0YWxvZyBmcm9tIgogICAgICAgICAgICBzZWFyY2hBbmFseXRpY3MgLT4gYW5hbHl0aWNzU3lzdGVtICJTZW5kcyBzZWFyY2ggbWV0cmljcyB0byIKICAgICAgICAgICAgc2VhcmNoQVBJIC0+IHJlY29tbWVuZGF0aW9uRW5naW5lICJHZXRzIHBlcnNvbmFsaXplZCByZXN1bHRzIGZyb20iCiAgICAgICAgfQogICAgICAgICMgRGVmaW5lIHJlY29tbWVuZGF0aW9uIGVuZ2luZSBwZW9wbGUKICAgICAgICBkYXRhU2NpZW50aXN0ID0gcGVyc29uICJEYXRhIFNjaWVudGlzdCIgIkRldmVsb3BzIGFuZCBvcHRpbWl6ZXMgcmVjb21tZW5kYXRpb24gYWxnb3JpdGhtcyIKICAgICAgICBtbEVuZ2luZWVyID0gcGVyc29uICJNTCBFbmdpbmVlciIgIk1haW50YWlucyBhbmQgbW9uaXRvcnMgbWFjaGluZSBsZWFybmluZyBtb2RlbHMiCiAgICAgICAgCiAgICAgICAgIyBSZWRlZmluZSByZWNvbW1lbmRhdGlvbkVuZ2luZSBhcyB0aGUgaW50ZXJuYWwgc3lzdGVtIChvdmVycmlkZXMgdGhlIGV4dGVybmFsIHN5c3RlbSBkZWZpbml0aW9uKQogICAgICAgICFlbGVtZW50IHJlY29tbWVuZGF0aW9uRW5naW5lIHsKICAgICAgICAgICAgIyBDb250YWluZXIgbGV2ZWwgLSBtaWNyb3NlcnZpY2VzCiAgICAgICAgICAgIHJlY29tbWVuZGF0aW9uQVBJID0gY29udGFpbmVyICJSZWNvbW1lbmRhdGlvbiBBUEkiICJTZXJ2ZXMgcGVyc29uYWxpemVkIHJlY29tbWVuZGF0aW9ucyIgIlB5dGhvbi9GYXN0QVBJIgogICAgICAgICAgICBtb2RlbFRyYWluaW5nU2VydmljZSA9IGNvbnRhaW5lciAiTW9kZWwgVHJhaW5pbmcgU2VydmljZSIgIlRyYWlucyBhbmQgdXBkYXRlcyBNTCBtb2RlbHMiICJQeXRob24vTUxmbG93IgogICAgICAgICAgICBkYXRhUHJvY2Vzc2luZ1NlcnZpY2UgPSBjb250YWluZXIgIkRhdGEgUHJvY2Vzc2luZyBTZXJ2aWNlIiAiUHJvY2Vzc2VzIHVzZXIgYmVoYXZpb3IgYW5kIHByb2R1Y3QgZGF0YSIgIkFwYWNoZSBTcGFyay9QeXRob24iCiAgICAgICAgICAgIGZlYXR1cmVTdG9yZSA9IGNvbnRhaW5lciAiRmVhdHVyZSBTdG9yZSIgIk1hbmFnZXMgTUwgZmVhdHVyZXMgZm9yIHJlY29tbWVuZGF0aW9ucyIgIlB5dGhvbi9GZWFzdCIKICAgICAgICAgICAgbW9kZWxTZXJ2aW5nU2VydmljZSA9IGNvbnRhaW5lciAiTW9kZWwgU2VydmluZyBTZXJ2aWNlIiAiSG9zdHMgYW5kIHNlcnZlcyBNTCBtb2RlbHMiICJQeXRob24vVGVuc29yRmxvdyBTZXJ2aW5nIgogICAgICAgICAgICBhYlRlc3RpbmdTZXJ2aWNlID0gY29udGFpbmVyICJBL0IgVGVzdGluZyBTZXJ2aWNlIiAiTWFuYWdlcyByZWNvbW1lbmRhdGlvbiBleHBlcmltZW50cyIgIlB5dGhvbi9GYXN0QVBJIgogICAgICAgICAgICAKICAgICAgICAgICAgIyBNTCBhbmQgZGF0YSBpbmZyYXN0cnVjdHVyZQogICAgICAgICAgICBtb2RlbFN0b3JhZ2UgPSBjb250YWluZXIgIk1vZGVsIFN0b3JhZ2UiICJTdG9yZXMgdHJhaW5lZCBNTCBtb2RlbHMgYW5kIGFydGlmYWN0cyIgIk1pbklPL1MzIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgfQogICAgICAgICAgICBmZWF0dXJlRGF0YWJhc2UgPSBjb250YWluZXIgIkZlYXR1cmUgRGF0YWJhc2UiICJTdG9yZXMgdXNlciBhbmQgcHJvZHVjdCBmZWF0dXJlcyIgIlBvc3RncmVTUUwiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIGJlaGF2aW9yRGF0YUxha2UgPSBjb250YWluZXIgIkJlaGF2aW9yIERhdGEgTGFrZSIgIlN0b3JlcyByYXcgdXNlciBpbnRlcmFjdGlvbiBkYXRhIiAiQXBhY2hlIFBhcnF1ZXQvUzMiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIG1vZGVsTWV0cmljc0RhdGFiYXNlID0gY29udGFpbmVyICJNb2RlbCBNZXRyaWNzIERhdGFiYXNlIiAiU3RvcmVzIG1vZGVsIHBlcmZvcm1hbmNlIG1ldHJpY3MiICJJbmZsdXhEQiIgewogICAgICAgICAgICAgICAgdGFncyAiRGF0YWJhc2UiCiAgICAgICAgICAgIH0KICAgICAgICAgICAgCiAgICAgICAgICAgIG1lc3NhZ2VRdWV1ZSA9IGNvbnRhaW5lciAiTWVzc2FnZSBRdWV1ZSIgIkhhbmRsZXMgcmVhbC10aW1lIHVzZXIgZXZlbnRzIiAiQXBhY2hlIEthZmthIgogICAgICAgIAogICAgICAgICAgICAjIERlZmluZSByZWxhdGlvbnNoaXBzIGF0IHRoZSBjb250YWluZXIgbGV2ZWwKICAgICAgICAgICAgY3VzdG9tZXIgLT4gcmVjb21tZW5kYXRpb25BUEkgIkdldHMgcGVyc29uYWxpemVkIHJlY29tbWVuZGF0aW9ucyBmcm9tIiAKICAgICAgICAgICAgZGF0YVNjaWVudGlzdCAtPiBtb2RlbFRyYWluaW5nU2VydmljZSAiRGV2ZWxvcHMgbW9kZWxzIHdpdGgiCiAgICAgICAgICAgIG1sRW5naW5lZXIgLT4gbW9kZWxTZXJ2aW5nU2VydmljZSAiTW9uaXRvcnMgbW9kZWxzIHVzaW5nIgogICAgICAgICAgICBtbEVuZ2luZWVyIC0+IGFiVGVzdGluZ1NlcnZpY2UgIk1hbmFnZXMgZXhwZXJpbWVudHMgd2l0aCIKICAgICAgICAgICAgCiAgICAgICAgICAgICMgSW50ZXJuYWwgc2VydmljZSByZWxhdGlvbnNoaXBzCiAgICAgICAgICAgIHJlY29tbWVuZGF0aW9uQVBJIC0+IG1vZGVsU2VydmluZ1NlcnZpY2UgIkdldHMgcHJlZGljdGlvbnMgZnJvbSIKICAgICAgICAgICAgcmVjb21tZW5kYXRpb25BUEkgLT4gZmVhdHVyZVN0b3JlICJSZXRyaWV2ZXMgdXNlciBmZWF0dXJlcyBmcm9tIgogICAgICAgICAgICByZWNvbW1lbmRhdGlvbkFQSSAtPiBhYlRlc3RpbmdTZXJ2aWNlICJHZXRzIGV4cGVyaW1lbnQgY29uZmlndXJhdGlvbiBmcm9tIgogICAgICAgICAgICAKICAgICAgICAgICAgbW9kZWxUcmFpbmluZ1NlcnZpY2UgLT4gYmVoYXZpb3JEYXRhTGFrZSAiVHJhaW5zIG9uIGhpc3RvcmljYWwgZGF0YSBmcm9tIgogICAgICAgICAgICBtb2RlbFRyYWluaW5nU2VydmljZSAtPiBmZWF0dXJlU3RvcmUgIlVzZXMgZmVhdHVyZXMgZnJvbSIKICAgICAgICAgICAgbW9kZWxUcmFpbmluZ1NlcnZpY2UgLT4gbW9kZWxTdG9yYWdlICJTdG9yZXMgdHJhaW5lZCBtb2RlbHMgaW4iCiAgICAgICAgICAgIAogICAgICAgICAgICBkYXRhUHJvY2Vzc2luZ1NlcnZpY2UgLT4gYmVoYXZpb3JEYXRhTGFrZSAiUHJvY2Vzc2VzIHJhdyBkYXRhIGludG8iCiAgICAgICAgICAgIGRhdGFQcm9jZXNzaW5nU2VydmljZSAtPiBmZWF0dXJlU3RvcmUgIlVwZGF0ZXMgZmVhdHVyZXMgaW4iCiAgICAgICAgICAgIGRhdGFQcm9jZXNzaW5nU2VydmljZSAtPiBtZXNzYWdlUXVldWUgIkNvbnN1bWVzIHVzZXIgZXZlbnRzIGZyb20iCiAgICAgICAgICAgIAogICAgICAgICAgICBtb2RlbFNlcnZpbmdTZXJ2aWNlIC0+IG1vZGVsU3RvcmFnZSAiTG9hZHMgbW9kZWxzIGZyb20iCiAgICAgICAgICAgIG1vZGVsU2VydmluZ1NlcnZpY2UgLT4gbW9kZWxNZXRyaWNzRGF0YWJhc2UgIkxvZ3MgcGVyZm9ybWFuY2UgbWV0cmljcyB0byIKICAgICAgICAgICAgCiAgICAgICAgICAgIGZlYXR1cmVTdG9yZSAtPiBmZWF0dXJlRGF0YWJhc2UgIlN0b3JlcyBmZWF0dXJlcyBpbiIKICAgICAgICAgICAgYWJUZXN0aW5nU2VydmljZSAtPiBtb2RlbE1ldHJpY3NEYXRhYmFzZSAiVHJhY2tzIGV4cGVyaW1lbnQgcmVzdWx0cyBpbiIKICAgICAgICAgICAgCiAgICAgICAgICAgICMgSW50ZWdyYXRpb24gd2l0aCBvdGhlciBzeXN0ZW1zCiAgICAgICAgICAgIGRhdGFQcm9jZXNzaW5nU2VydmljZSAtPiBlY29tbWVyY2VTeXN0ZW0gIkluZ2VzdHMgdXNlciBiZWhhdmlvciBmcm9tIgogICAgICAgICAgICByZWNvbW1lbmRhdGlvbkFQSSAtPiBlY29tbWVyY2VTeXN0ZW0gIkdldHMgcHJvZHVjdCBpbmZvcm1hdGlvbiBmcm9tIgogICAgICAgICAgICBkYXRhUHJvY2Vzc2luZ1NlcnZpY2UgLT4gYW5hbHl0aWNzU3lzdGVtICJTZW5kcyByZWNvbW1lbmRhdGlvbiBtZXRyaWNzIHRvIgogICAgICAgICAgICByZWNvbW1lbmRhdGlvbkFQSSAtPiBzZWFyY2hTZXJ2aWNlICJFbmhhbmNlcyBzZWFyY2ggcmVzdWx0cyBmb3IiCiAgICAgICAgfQogICAgfQoKICAgIHZpZXdzIHsKICAgICAgICBzdHlsZXMgewogICAgICAgICAgICBlbGVtZW50ICJQZXJzb24iIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgI2Y0OTY5NgogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICAgICAgZm9udFNpemUgMjIKICAgICAgICAgICAgICAgIHNoYXBlIFBlcnNvbgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIlNvZnR3YXJlIFN5c3RlbSIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjMTE2OGJkCiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiQ29udGFpbmVyIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICM0MzhkZDUKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJEYXRhYmFzZSIgewogICAgICAgICAgICAgICAgc2hhcGUgY3lsaW5kZXIKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJFeHRlcm5hbCIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjYzdjZWQ2CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICB9CgogICAgIWFkcnMgZG9jcy9hcmNoaXRlY3R1cmUtZGVjaXNpb24tcmVjb3Jkcwp9"
+  },
+  "views" : {
+    "configuration" : {
+      "branding" : { },
+      "lastSavedView" : "SystemLandscape-001",
+      "metadataSymbols" : "SquareBrackets",
+      "styles" : {
+        "elements" : [ {
+          "background" : "#f49696",
+          "color" : "#ffffff",
+          "fontSize" : 22,
+          "shape" : "Person",
+          "tag" : "Person"
+        }, {
+          "background" : "#1168bd",
+          "color" : "#ffffff",
+          "tag" : "Software System"
+        }, {
+          "background" : "#438dd5",
+          "color" : "#ffffff",
+          "tag" : "Container"
+        }, {
+          "shape" : "Cylinder",
+          "tag" : "Database"
+        }, {
+          "background" : "#c7ced6",
+          "tag" : "External"
+        } ]
+      },
+      "terminology" : { }
+    },
+    "containerViews" : [ {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "6",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "111",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "112",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "114",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "115",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "116",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "117",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "118",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "119",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "120",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "121",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "122",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "123",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "124",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "125",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "generatedKey" : true,
+      "key" : "Container-001",
+      "order" : 6,
+      "relationships" : [ {
+        "id" : "126"
+      }, {
+        "id" : "128"
+      }, {
+        "id" : "130"
+      }, {
+        "id" : "132"
+      }, {
+        "id" : "133"
+      }, {
+        "id" : "134"
+      }, {
+        "id" : "135"
+      }, {
+        "id" : "136"
+      }, {
+        "id" : "137"
+      }, {
+        "id" : "138"
+      }, {
+        "id" : "139"
+      }, {
+        "id" : "140"
+      }, {
+        "id" : "141"
+      }, {
+        "id" : "142"
+      }, {
+        "id" : "143"
+      }, {
+        "id" : "144"
+      }, {
+        "id" : "146"
+      }, {
+        "id" : "147"
+      }, {
+        "id" : "148"
+      }, {
+        "id" : "149"
+      }, {
+        "id" : "151"
+      }, {
+        "id" : "153"
+      }, {
+        "id" : "25"
+      }, {
+        "id" : "45"
+      } ],
+      "softwareSystemId" : "113"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "10",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "11",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "12",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "13",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "14",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "15",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "16",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "17",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "18",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "19",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "20",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "21",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "22",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "23",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "generatedKey" : true,
+      "key" : "Container-002",
+      "order" : 8,
+      "relationships" : [ {
+        "id" : "24"
+      }, {
+        "id" : "26"
+      }, {
+        "id" : "28"
+      }, {
+        "id" : "29"
+      }, {
+        "id" : "30"
+      }, {
+        "id" : "31"
+      }, {
+        "id" : "32"
+      }, {
+        "id" : "33"
+      }, {
+        "id" : "34"
+      }, {
+        "id" : "35"
+      }, {
+        "id" : "36"
+      }, {
+        "id" : "37"
+      }, {
+        "id" : "39"
+      }, {
+        "id" : "41"
+      }, {
+        "id" : "42"
+      }, {
+        "id" : "43"
+      }, {
+        "id" : "44"
+      } ],
+      "softwareSystemId" : "3"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "46",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "47",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "48",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "49",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "50",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "51",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "52",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "53",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "54",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "55",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "generatedKey" : true,
+      "key" : "Container-003",
+      "order" : 11,
+      "relationships" : [ {
+        "id" : "56"
+      }, {
+        "id" : "57"
+      }, {
+        "id" : "58"
+      }, {
+        "id" : "59"
+      }, {
+        "id" : "60"
+      }, {
+        "id" : "61"
+      }, {
+        "id" : "62"
+      }, {
+        "id" : "63"
+      }, {
+        "id" : "64"
+      }, {
+        "id" : "65"
+      }, {
+        "id" : "66"
+      }, {
+        "id" : "68"
+      }, {
+        "id" : "69"
+      }, {
+        "id" : "70"
+      }, {
+        "id" : "71"
+      } ],
+      "softwareSystemId" : "4"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "73",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "74",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "75",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "76",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "77",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "78",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "79",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "80",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "81",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "82",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "83",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "84",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "generatedKey" : true,
+      "key" : "Container-004",
+      "order" : 13,
+      "relationships" : [ {
+        "id" : "100"
+      }, {
+        "id" : "101"
+      }, {
+        "id" : "102"
+      }, {
+        "id" : "103"
+      }, {
+        "id" : "104"
+      }, {
+        "id" : "105"
+      }, {
+        "id" : "106"
+      }, {
+        "id" : "107"
+      }, {
+        "id" : "108"
+      }, {
+        "id" : "109"
+      }, {
+        "id" : "90"
+      }, {
+        "id" : "91"
+      }, {
+        "id" : "92"
+      }, {
+        "id" : "93"
+      }, {
+        "id" : "94"
+      }, {
+        "id" : "95"
+      }, {
+        "id" : "96"
+      }, {
+        "id" : "97"
+      }, {
+        "id" : "98"
+      }, {
+        "id" : "99"
+      } ],
+      "softwareSystemId" : "5"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "9",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "191",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "192",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "193",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "194",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "195",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "196",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "197",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "198",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "199",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "200",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "201",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "202",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "203",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "generatedKey" : true,
+      "key" : "Container-005",
+      "order" : 16,
+      "relationships" : [ {
+        "id" : "168"
+      }, {
+        "id" : "186"
+      }, {
+        "id" : "188"
+      }, {
+        "id" : "204"
+      }, {
+        "id" : "206"
+      }, {
+        "id" : "208"
+      }, {
+        "id" : "210"
+      }, {
+        "id" : "211"
+      }, {
+        "id" : "212"
+      }, {
+        "id" : "213"
+      }, {
+        "id" : "214"
+      }, {
+        "id" : "215"
+      }, {
+        "id" : "216"
+      }, {
+        "id" : "217"
+      }, {
+        "id" : "218"
+      }, {
+        "id" : "219"
+      }, {
+        "id" : "220"
+      }, {
+        "id" : "221"
+      }, {
+        "id" : "222"
+      }, {
+        "id" : "223"
+      }, {
+        "id" : "224"
+      }, {
+        "id" : "226"
+      }, {
+        "id" : "227"
+      }, {
+        "id" : "229"
+      }, {
+        "id" : "25"
+      } ],
+      "softwareSystemId" : "8"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "8",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "155",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "156",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "157",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "158",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "159",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "160",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "161",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "162",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "163",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "164",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "165",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "166",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "generatedKey" : true,
+      "key" : "Container-006",
+      "order" : 18,
+      "relationships" : [ {
+        "id" : "167"
+      }, {
+        "id" : "169"
+      }, {
+        "id" : "171"
+      }, {
+        "id" : "173"
+      }, {
+        "id" : "174"
+      }, {
+        "id" : "175"
+      }, {
+        "id" : "176"
+      }, {
+        "id" : "177"
+      }, {
+        "id" : "178"
+      }, {
+        "id" : "179"
+      }, {
+        "id" : "180"
+      }, {
+        "id" : "181"
+      }, {
+        "id" : "182"
+      }, {
+        "id" : "183"
+      }, {
+        "id" : "184"
+      }, {
+        "id" : "185"
+      }, {
+        "id" : "187"
+      }, {
+        "id" : "189"
+      }, {
+        "id" : "205"
+      }, {
+        "id" : "225"
+      }, {
+        "id" : "228"
+      }, {
+        "id" : "25"
+      } ],
+      "softwareSystemId" : "9"
+    } ],
+    "systemContextViews" : [ {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "8",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "9",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "113",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-001",
+      "order" : 2,
+      "relationships" : [ {
+        "id" : "154"
+      }, {
+        "id" : "188"
+      }, {
+        "id" : "190"
+      }, {
+        "id" : "228"
+      }, {
+        "id" : "230"
+      } ],
+      "softwareSystemId" : "7"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "5",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "75",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-002",
+      "order" : 3,
+      "relationships" : [ {
+        "id" : "89"
+      } ],
+      "softwareSystemId" : "75"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "6",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "113",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-003",
+      "order" : 4,
+      "relationships" : [ {
+        "id" : "152"
+      } ],
+      "softwareSystemId" : "6"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "6",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "111",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "112",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "113",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-004",
+      "order" : 5,
+      "relationships" : [ {
+        "id" : "127"
+      }, {
+        "id" : "129"
+      }, {
+        "id" : "131"
+      }, {
+        "id" : "145"
+      }, {
+        "id" : "150"
+      }, {
+        "id" : "152"
+      }, {
+        "id" : "154"
+      }, {
+        "id" : "25"
+      }, {
+        "id" : "45"
+      } ],
+      "softwareSystemId" : "113"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "5",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "8",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "9",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "10",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "11",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "12",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "113",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-005",
+      "order" : 7,
+      "relationships" : [ {
+        "id" : "110"
+      }, {
+        "id" : "127"
+      }, {
+        "id" : "145"
+      }, {
+        "id" : "150"
+      }, {
+        "id" : "168"
+      }, {
+        "id" : "186"
+      }, {
+        "id" : "190"
+      }, {
+        "id" : "205"
+      }, {
+        "id" : "225"
+      }, {
+        "id" : "230"
+      }, {
+        "id" : "25"
+      }, {
+        "id" : "27"
+      }, {
+        "id" : "38"
+      }, {
+        "id" : "40"
+      }, {
+        "id" : "45"
+      }, {
+        "id" : "87"
+      }, {
+        "id" : "88"
+      } ],
+      "softwareSystemId" : "3"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "4",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "5",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "113",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-006",
+      "order" : 9,
+      "relationships" : [ {
+        "id" : "110"
+      }, {
+        "id" : "145"
+      }, {
+        "id" : "150"
+      }, {
+        "id" : "45"
+      }, {
+        "id" : "72"
+      }, {
+        "id" : "87"
+      }, {
+        "id" : "88"
+      } ],
+      "softwareSystemId" : "2"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "4",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "46",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-007",
+      "order" : 10,
+      "relationships" : [ {
+        "id" : "67"
+      }, {
+        "id" : "72"
+      } ],
+      "softwareSystemId" : "4"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "5",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "73",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "74",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "75",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-008",
+      "order" : 12,
+      "relationships" : [ {
+        "id" : "110"
+      }, {
+        "id" : "45"
+      }, {
+        "id" : "85"
+      }, {
+        "id" : "86"
+      }, {
+        "id" : "87"
+      }, {
+        "id" : "88"
+      }, {
+        "id" : "89"
+      } ],
+      "softwareSystemId" : "5"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "12",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-009",
+      "order" : 14,
+      "relationships" : [ {
+        "id" : "40"
+      } ],
+      "softwareSystemId" : "12"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "8",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "9",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "191",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "192",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-010",
+      "order" : 15,
+      "relationships" : [ {
+        "id" : "168"
+      }, {
+        "id" : "186"
+      }, {
+        "id" : "188"
+      }, {
+        "id" : "190"
+      }, {
+        "id" : "205"
+      }, {
+        "id" : "207"
+      }, {
+        "id" : "209"
+      }, {
+        "id" : "225"
+      }, {
+        "id" : "228"
+      }, {
+        "id" : "230"
+      }, {
+        "id" : "25"
+      } ],
+      "softwareSystemId" : "8"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "8",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "9",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "155",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "156",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-011",
+      "order" : 17,
+      "relationships" : [ {
+        "id" : "168"
+      }, {
+        "id" : "170"
+      }, {
+        "id" : "172"
+      }, {
+        "id" : "186"
+      }, {
+        "id" : "188"
+      }, {
+        "id" : "190"
+      }, {
+        "id" : "205"
+      }, {
+        "id" : "225"
+      }, {
+        "id" : "228"
+      }, {
+        "id" : "230"
+      }, {
+        "id" : "25"
+      } ],
+      "softwareSystemId" : "9"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "4",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "46",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-012",
+      "order" : 19,
+      "relationships" : [ {
+        "id" : "67"
+      } ],
+      "softwareSystemId" : "46"
+    }, {
+      "automaticLayout" : {
+        "applied" : false,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "elements" : [ {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "11",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemContext-013",
+      "order" : 20,
+      "relationships" : [ {
+        "id" : "38"
+      } ],
+      "softwareSystemId" : "11"
+    } ],
+    "systemLandscapeViews" : [ {
+      "automaticLayout" : {
+        "applied" : true,
+        "edgeSeparation" : 0,
+        "implementation" : "Graphviz",
+        "nodeSeparation" : 300,
+        "rankDirection" : "TopBottom",
+        "rankSeparation" : 300,
+        "vertices" : false
+      },
+      "dimensions" : {
+        "height" : 3400,
+        "width" : 7421
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 2467,
+        "y" : 165
+      }, {
+        "id" : "2",
+        "x" : 5867,
+        "y" : 2865
+      }, {
+        "id" : "3",
+        "x" : 4663,
+        "y" : 2265
+      }, {
+        "id" : "4",
+        "x" : 6771,
+        "y" : 2265
+      }, {
+        "id" : "5",
+        "x" : 6067,
+        "y" : 1615
+      }, {
+        "id" : "6",
+        "x" : 2138,
+        "y" : 2265
+      }, {
+        "id" : "7",
+        "x" : 3400,
+        "y" : 2265
+      }, {
+        "id" : "8",
+        "x" : 4825,
+        "y" : 915
+      }, {
+        "id" : "9",
+        "x" : 3400,
+        "y" : 1615
+      }, {
+        "id" : "10",
+        "x" : 5367,
+        "y" : 1565
+      }, {
+        "id" : "11",
+        "x" : 4063,
+        "y" : 2865
+      }, {
+        "id" : "12",
+        "x" : 4813,
+        "y" : 2865
+      }, {
+        "id" : "46",
+        "x" : 6771,
+        "y" : 2865
+      }, {
+        "id" : "73",
+        "x" : 5834,
+        "y" : 865
+      }, {
+        "id" : "74",
+        "x" : 6534,
+        "y" : 865
+      }, {
+        "id" : "75",
+        "x" : 5413,
+        "y" : 2265
+      }, {
+        "id" : "111",
+        "x" : 200,
+        "y" : 865
+      }, {
+        "id" : "112",
+        "x" : 900,
+        "y" : 865
+      }, {
+        "id" : "113",
+        "x" : 1459,
+        "y" : 1615
+      }, {
+        "id" : "155",
+        "x" : 3425,
+        "y" : 865
+      }, {
+        "id" : "156",
+        "x" : 4125,
+        "y" : 865
+      }, {
+        "id" : "191",
+        "x" : 5200,
+        "y" : 165
+      }, {
+        "id" : "192",
+        "x" : 4500,
+        "y" : 165
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "generatedKey" : true,
+      "key" : "SystemLandscape-001",
+      "order" : 1,
+      "relationships" : [ {
+        "id" : "110",
+        "vertices" : [ {
+          "x" : 5767,
+          "y" : 1965
+        } ]
+      }, {
+        "id" : "127",
+        "vertices" : [ {
+          "x" : 2134,
+          "y" : 865
+        } ]
+      }, {
+        "id" : "129",
+        "vertices" : [ {
+          "x" : 750,
+          "y" : 1265
+        } ]
+      }, {
+        "id" : "131"
+      }, {
+        "id" : "145",
+        "vertices" : [ {
+          "x" : 1988,
+          "y" : 2565
+        }, {
+          "x" : 5413,
+          "y" : 2865
+        } ]
+      }, {
+        "id" : "150",
+        "vertices" : [ {
+          "x" : 2134,
+          "y" : 1965
+        }, {
+          "x" : 4000,
+          "y" : 2265
+        } ]
+      }, {
+        "id" : "152"
+      }, {
+        "id" : "154",
+        "vertices" : [ {
+          "x" : 2134,
+          "y" : 1965
+        } ]
+      }, {
+        "id" : "168",
+        "vertices" : [ {
+          "x" : 3275,
+          "y" : 1265
+        } ]
+      }, {
+        "id" : "170"
+      }, {
+        "id" : "172"
+      }, {
+        "id" : "186"
+      }, {
+        "id" : "188"
+      }, {
+        "id" : "190",
+        "vertices" : [ {
+          "x" : 4825,
+          "y" : 1265
+        } ]
+      }, {
+        "id" : "205",
+        "vertices" : [ {
+          "x" : 4675,
+          "y" : 865
+        } ]
+      }, {
+        "id" : "207"
+      }, {
+        "id" : "209"
+      }, {
+        "id" : "225"
+      }, {
+        "id" : "228"
+      }, {
+        "id" : "230",
+        "vertices" : [ {
+          "x" : 4525,
+          "y" : 1265
+        } ]
+      }, {
+        "id" : "25",
+        "vertices" : [ {
+          "x" : 2929,
+          "y" : 1265
+        }, {
+          "x" : 3250,
+          "y" : 1965
+        } ]
+      }, {
+        "id" : "27"
+      }, {
+        "id" : "38"
+      }, {
+        "id" : "40"
+      }, {
+        "id" : "45"
+      }, {
+        "id" : "67"
+      }, {
+        "id" : "72"
+      }, {
+        "id" : "85"
+      }, {
+        "id" : "86"
+      }, {
+        "id" : "87",
+        "vertices" : [ {
+          "x" : 6067,
+          "y" : 1965
+        } ]
+      }, {
+        "id" : "88"
+      }, {
+        "id" : "89"
+      } ]
+    } ]
+  }
+}
