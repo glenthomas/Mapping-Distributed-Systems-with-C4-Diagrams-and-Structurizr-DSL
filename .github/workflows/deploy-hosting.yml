@@ -9,7 +9,8 @@ on:
       - 'deployment/static-site-hosting/**'
 
 jobs:
-  build-and-deploy:
+  terraform-apply:
+    name: Terraform Apply
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
