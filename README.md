@@ -2,6 +2,8 @@
 
 See my [blog post](https://blog.glen-thomas.com/architecture/2025/08/27/mapping-complex-distributed-systems-with-c4-diagrams-and-structurizr-dsl2.html) for a full explanation of this repository.
 
+View a live demo of a static website with limited features at [structurizr-sample.glen-thomas.com](https://structurizr-sample.glen-thomas.com).
+
 ## Repository Structure
 
 This repository demonstrates a modular approach to documenting distributed system architecture using Structurizr DSL. The structure follows a **system-per-folder** pattern with shared configurations and documentation.
