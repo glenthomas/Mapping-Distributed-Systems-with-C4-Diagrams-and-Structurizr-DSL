@@ -12,6 +12,9 @@ jobs:
   terraform-apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,5 +28,7 @@ jobs:
 
       - name: Terraform Apply
         uses: dflook/terraform-apply@v2.2.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           path: ./deployment/static-site-hosting
