@@ -1,4 +1,4 @@
-name: Plan Static Site
+name: Plan Site Hosting
 
 on:
   pull_request:
