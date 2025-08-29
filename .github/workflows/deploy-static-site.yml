@@ -24,9 +24,14 @@ jobs:
           unzip structurizr-cli.zip -d structurizr-cli
           chmod +x structurizr-cli/structurizr.sh
 
+      - name: install Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+
       - name: Compile static site with Structurizr
         run: |
-          ./structurizr-cli/structurizr.sh export -workspace workspace.dsl -format static
+          ./structurizr-cli/structurizr.sh export -workspace workspace.dsl -format static -output ./static-site
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -37,4 +42,4 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          aws s3 sync structurizr/export/static/ s3://glen-thomas-structurizr-blog-static-site/ --delete
+          aws s3 sync ./static-site s3://glen-thomas-structurizr-blog-static-site/ --delete
