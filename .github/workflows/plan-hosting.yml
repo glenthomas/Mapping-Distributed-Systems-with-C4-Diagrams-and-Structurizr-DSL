@@ -23,5 +23,7 @@ jobs:
 
       - name: Terraform Plan
         uses: dflook/terraform-plan@v2.2.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           path: ./deployment/static-site-hosting
